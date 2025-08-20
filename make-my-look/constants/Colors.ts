@@ -1,26 +1,44 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Premium black and white color scheme for the salon booking app
+ * Designed for elegance and sophistication
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const primaryBlack = '#000000';
+const primaryWhite = '#FFFFFF';
+const softGray = '#F5F5F5';
+const darkGray = '#333333';
+const lightGray = '#E5E5E5';
+const mediumGray = '#888888';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: primaryBlack,
+    background: primaryWhite,
+    tint: primaryBlack,
+    icon: darkGray,
+    tabIconDefault: mediumGray,
+    tabIconSelected: primaryBlack,
+    card: primaryWhite,
+    border: lightGray,
+    inputBackground: softGray,
+    placeholder: mediumGray,
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: primaryWhite,
+    background: primaryBlack,
+    tint: primaryWhite,
+    icon: lightGray,
+    tabIconDefault: mediumGray,
+    tabIconSelected: primaryWhite,
+    card: darkGray,
+    border: '#444444',
+    inputBackground: darkGray,
+    placeholder: mediumGray,
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
   },
 };

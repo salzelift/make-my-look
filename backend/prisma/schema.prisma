@@ -1,0 +1,168 @@
+// Salon Booking System Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Predefined salon services
+model ServiceType {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  category    String    // e.g., "Hair", "Nails", "Facial", "Massage"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  storeServices StoreService[]
+}
+
+// User types enum
+enum UserType {
+  OWNER
+  CUSTOMER
+}
+
+// Base user model
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  name        String
+  phoneNumber String
+  userType    UserType
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  owner    Owner?
+  customer Customer?
+}
+
+// Owner profile
+model Owner {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  stores Store[]
+  
+  @@map("owners")
+}
+
+// Customer profile
+model Customer {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredServices String[] // Array of service type IDs
+  
+  // Relations
+  bookings Booking[]
+  
+  @@map("customers")
+}
+
+// Store/Salon
+model Store {
+  id          String   @id @default(uuid())
+  name        String
+  email       String?
+  address     String
+  phoneNumber String?
+  latitude    Float?
+  longitude   Float?
+  ownerId     String
+  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  services      StoreService[]
+  bookings      Booking[]
+  availability  StoreAvailability[]
+  
+  @@map("stores")
+}
+
+// Services offered by a store
+model StoreService {
+  id            String      @id @default(uuid())
+  storeId       String
+  serviceTypeId String
+  price         Float
+  duration      Int         // Duration in minutes
+  description   String?
+  isActive      Boolean     @default(true)
+  
+  // Relations
+  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id])
+  bookings    Booking[]
+  
+  @@unique([storeId, serviceTypeId])
+  @@map("store_services")
+}
+
+// Store availability
+model StoreAvailability {
+  id        String   @id @default(uuid())
+  storeId   String
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday, etc.
+  startTime String   // Format: "09:00"
+  endTime   String   // Format: "18:00"
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@unique([storeId, dayOfWeek])
+  @@map("store_availability")
+}
+
+// Booking status enum
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  PARTIAL    // 50% paid
+  FULL       // 100% paid
+  REFUNDED
+}
+
+// Bookings
+model Booking {
+  id              String        @id @default(uuid())
+  customerId      String
+  storeId         String
+  storeServiceId  String
+  bookingDate     DateTime
+  startTime       String        // Format: "14:30"
+  endTime         String        // Format: "15:30"
+  totalPrice      Float
+  paidAmount      Float         @default(0)
+  paymentStatus   PaymentStatus @default(PENDING)
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  store        Store        @relation(fields: [storeId], references: [id])
+  storeService StoreService @relation(fields: [storeServiceId], references: [id])
+  
+  @@map("bookings")
+}
