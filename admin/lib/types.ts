@@ -5,12 +5,18 @@ export enum UserType {
   EMPLOYEE = 'EMPLOYEE',
 }
 
+export enum UserRole {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
   phoneNumber: string;
   userType: UserType;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
   owner?: Owner;

@@ -11,6 +11,7 @@ const bookingRoutes = require('./routes/bookings');
 const serviceRoutes = require('./routes/services');
 const paymentRoutes = require('./routes/payments');
 const employeeRoutes = require('./routes/employees');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// logger middlewar
+
+app.use((req, res, next)=>{
+  console.log(`${req.method} ${req.url}`);
+  next();
+})
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -29,6 +37,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

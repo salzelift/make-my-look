@@ -37,13 +37,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="min-h-screen bg-gray-50 flex ">
+      <div className="flex-1">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
       
-      <div className="lg:pl-64">
+      <div className="w-full ">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="p-6">
+        <main className="p-6 h-[93vh] overflow-y-scroll">
           {children}
         </main>
       </div>

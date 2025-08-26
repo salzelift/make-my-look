@@ -28,7 +28,7 @@ interface UsersResponse {
   };
 }
 
-const UsersPage = () => {
+const EmployeesPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,6 @@ const UsersPage = () => {
   // Filters
   const [filters, setFilters] = useState({
     search: '',
-    userType: '',
     role: ''
   });
 
@@ -56,6 +55,7 @@ const UsersPage = () => {
       const params = {
         page: pagination.page,
         limit: pagination.limit,
+        userType: 'EMPLOYEE', // Filter for employees only
         ...filters
       };
       
@@ -65,7 +65,7 @@ const UsersPage = () => {
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch users');
+      setError(err.response?.data?.error || 'Failed to fetch employees');
     } finally {
       setLoading(false);
     }
@@ -135,8 +135,8 @@ const UsersPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-          <p className="text-gray-600 mt-1">Manage all platform users</p>
+          <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
+          <p className="text-gray-600 mt-1">Manage all employees on the platform</p>
         </div>
         <button
           onClick={fetchUsers}
@@ -156,30 +156,18 @@ const UsersPage = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search employees..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
             />
           </div>
-
-          {/* User Type Filter */}
-          <select
-            value={filters.userType}
-            onChange={(e) => handleFilterChange('userType', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-          >
-            <option value="">All User Types</option>
-            <option value="OWNER">Owners</option>
-            <option value="CUSTOMER">Customers</option>
-            <option value="EMPLOYEE">Employees</option>
-          </select>
 
           {/* Role Filter */}
           <select
@@ -194,7 +182,7 @@ const UsersPage = () => {
 
           {/* Clear Filters */}
           <button
-            onClick={() => setFilters({ search: '', userType: '', role: '' })}
+            onClick={() => setFilters({ search: '', role: '' })}
             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Clear Filters
@@ -209,7 +197,7 @@ const UsersPage = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
+                  Employee
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
@@ -219,6 +207,9 @@ const UsersPage = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Designation
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
@@ -264,6 +255,9 @@ const UsersPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.phoneNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {user.employee?.designation || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString()}
@@ -347,7 +341,7 @@ const UsersPage = () => {
       {users.length === 0 && !loading && (
         <div className="text-center py-12">
           <UsersIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
           <p className="text-gray-500">Try adjusting your filters or search terms.</p>
         </div>
       )}
@@ -355,4 +349,4 @@ const UsersPage = () => {
   );
 };
 
-export default UsersPage;
+export default EmployeesPage; 

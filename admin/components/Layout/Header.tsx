@@ -12,7 +12,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user } = useAuth();
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-6 py-3">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center">

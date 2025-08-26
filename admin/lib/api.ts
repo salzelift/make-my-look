@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -39,6 +39,39 @@ export const authAPI = {
   
   register: (data: any) =>
     api.post('/auth/register/admin', data),
+};
+
+// Admin API
+export const adminAPI = {
+  getDashboard: () =>
+    api.get('/admin/dashboard'),
+  
+  getUsers: (params?: any) =>
+    api.get('/admin/users', { params }),
+  
+  updateUserRole: (userId: string, role: string) =>
+    api.patch(`/admin/users/${userId}/role`, { role }),
+  
+  getStores: (params?: any) =>
+    api.get('/admin/stores', { params }),
+  
+  getBookings: (params?: any) =>
+    api.get('/admin/bookings', { params }),
+  
+  getPayments: (params?: any) =>
+    api.get('/admin/payments', { params }),
+  
+  getServices: (params?: any) =>
+    api.get('/admin/services', { params }),
+  
+  createService: (data: any) =>
+    api.post('/admin/services', data),
+  
+  updateService: (serviceId: string, data: any) =>
+    api.put(`/admin/services/${serviceId}`, data),
+  
+  deleteService: (serviceId: string) =>
+    api.delete(`/admin/services/${serviceId}`),
 };
 
 // Users API

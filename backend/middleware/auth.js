@@ -28,6 +28,7 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     req.userId = decoded.userId;
     req.userType = decoded.userType;
+    req.userRole = decoded.role;
     
     next();
   } catch (error) {
@@ -49,8 +50,16 @@ const requireCustomer = (req, res, next) => {
   next();
 };
 
+const requireAdmin = (req, res, next) => {
+  if (req.userRole !== 'ADMIN') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 module.exports = {
   authenticateToken,
   requireOwner,
-  requireCustomer
+  requireCustomer,
+  requireAdmin
 };

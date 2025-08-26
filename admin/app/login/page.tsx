@@ -69,7 +69,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-gray-50"
-                  placeholder="admin@makemylook.com"
+                  placeholder="admin@salon.com"
                 />
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function LoginPage() {
           {/* Demo Credentials */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 font-medium mb-2">Demo Credentials:</p>
-            <p className="text-xs text-gray-500">Email: admin@makemylook.com</p>
+            <p className="text-xs text-gray-500">Email: admin@salon.com</p>
             <p className="text-xs text-gray-500">Password: admin123</p>
           </div>
         </div>

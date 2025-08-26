@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { adminAPI } from '@/lib/api';
 import { 
   Users, 
   Store, 
@@ -8,225 +9,298 @@ import {
   DollarSign, 
   TrendingUp, 
   TrendingDown,
-  Activity,
-  Clock
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
-import { analyticsAPI } from '@/lib/api';
-import { DashboardStats } from '@/lib/types';
 
-const StatCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  trendValue 
-}: {
-  title: string;
-  value: string | number;
-  icon: any;
-  trend?: 'up' | 'down';
-  trendValue?: string;
-}) => (
-  <div className="card p-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        {trend && trendValue && (
-          <div className={`flex items-center mt-2 text-sm ${
-            trend === 'up' ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {trend === 'up' ? (
-              <TrendingUp className="w-4 h-4 mr-1" />
-            ) : (
-              <TrendingDown className="w-4 h-4 mr-1" />
-            )}
-            <span>{trendValue}</span>
-          </div>
-        )}
-      </div>
-      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-        <Icon className="w-6 h-6 text-gray-600" />
-      </div>
-    </div>
-  </div>
-);
+interface DashboardData {
+  analytics: {
+    users: Array<{ userType: string; _count: { id: number } }>;
+    stores: number;
+    bookings: Array<{ status: string; _count: { id: number } }>;
+    totalRevenue: number;
+    monthlyRevenue: Array<{ month: string; revenue: number }>;
+  };
+  recentBookings: Array<any>;
+  topStores: Array<any>;
+}
 
-const RecentActivity = ({ activities }: { activities: any[] }) => (
-  <div className="card p-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-    <div className="space-y-4">
-      {activities.map((activity, index) => (
-        <div key={index} className="flex items-center">
-          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
-            <Activity className="w-4 h-4 text-gray-600" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-900">{activity.description}</p>
-            <p className="text-xs text-gray-500 flex items-center mt-1">
-              <Clock className="w-3 h-3 mr-1" />
-              {activity.timestamp}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+const DashboardPage = () => {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDashboardData();
+    fetchDashboardData();
   }, []);
 
-  const loadDashboardData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      setIsLoading(true);
-      const response = await analyticsAPI.getDashboard();
-      setStats(response.data);
+      setLoading(true);
+      const response = await adminAPI.getDashboard();
+      setData(response.data);
     } catch (err: any) {
-      console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data');
-      
-      // Mock data for demo purposes
-      setStats({
-        totalUsers: 1247,
-        totalStores: 89,
-        totalBookings: 3456,
-        totalRevenue: 125890,
-        recentBookings: [],
-        userGrowth: [],
-        revenueGrowth: [],
-        popularServices: []
-      });
+      setError(err.response?.data?.error || 'Failed to fetch dashboard data');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     );
   }
 
-  const mockActivities = [
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={fetchDashboardData}
+            className="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  // Calculate stats
+  const totalUsers = data.analytics.users.reduce((sum, user) => sum + user._count.id, 0);
+  const totalBookings = data.analytics.bookings.reduce((sum, booking) => sum + booking._count.id, 0);
+  
+  const pendingBookings = data.analytics.bookings.find(b => b.status === 'PENDING')?._count.id || 0;
+  const confirmedBookings = data.analytics.bookings.find(b => b.status === 'CONFIRMED')?._count.id || 0;
+  const completedBookings = data.analytics.bookings.find(b => b.status === 'COMPLETED')?._count.id || 0;
+
+  const statsCards = [
     {
-      description: 'New customer registration: Sarah Johnson',
-      timestamp: '2 minutes ago'
+      title: 'Total Users',
+      value: totalUsers.toLocaleString(),
+      icon: Users,
+      color: 'bg-blue-500',
+      change: '+12%',
+      changeType: 'positive'
     },
     {
-      description: 'Booking confirmed at Glamour Salon',
-      timestamp: '15 minutes ago'
+      title: 'Total Stores',
+      value: data.analytics.stores.toLocaleString(),
+      icon: Store,
+      color: 'bg-green-500',
+      change: '+5%',
+      changeType: 'positive'
     },
     {
-      description: 'New store registered: Beauty Hub',
-      timestamp: '1 hour ago'
+      title: 'Total Bookings',
+      value: totalBookings.toLocaleString(),
+      icon: Calendar,
+      color: 'bg-purple-500',
+      change: '+8%',
+      changeType: 'positive'
     },
     {
-      description: 'Payment received: $150',
-      timestamp: '2 hours ago'
+      title: 'Total Revenue',
+      value: `₹${data.analytics.totalRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      color: 'bg-yellow-500',
+      change: '+15%',
+      changeType: 'positive'
+    }
+  ];
+
+  const bookingStatusCards = [
+    {
+      title: 'Pending',
+      value: pendingBookings,
+      icon: Clock,
+      color: 'bg-yellow-100 text-yellow-800'
+    },
+    {
+      title: 'Confirmed',
+      value: confirmedBookings,
+      icon: CheckCircle,
+      color: 'bg-blue-100 text-blue-800'
+    },
+    {
+      title: 'Completed',
+      value: completedBookings,
+      icon: CheckCircle,
+      color: 'bg-green-100 text-green-800'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-        <p className="text-gray-600">Monitor your salon booking platform performance</p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome to your admin dashboard</p>
         </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Users"
-          value={stats?.totalUsers?.toLocaleString() || '0'}
-          icon={Users}
-          trend="up"
-          trendValue="+12% from last month"
-        />
-        <StatCard
-          title="Active Stores"
-          value={stats?.totalStores?.toLocaleString() || '0'}
-          icon={Store}
-          trend="up"
-          trendValue="+5% from last month"
-        />
-        <StatCard
-          title="Total Bookings"
-          value={stats?.totalBookings?.toLocaleString() || '0'}
-          icon={Calendar}
-          trend="up"
-          trendValue="+18% from last month"
-        />
-        <StatCard
-          title="Total Revenue"
-          value={`$${stats?.totalRevenue?.toLocaleString() || '0'}`}
-          icon={DollarSign}
-          trend="up"
-          trendValue="+23% from last month"
-        />
+        <button
+          onClick={fetchDashboardData}
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          Refresh
+        </button>
       </div>
 
-      {/* Charts and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Stats */}
-        <div className="lg:col-span-2">
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Platform Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-gray-900">89%</p>
-                <p className="text-sm text-gray-600">Customer Satisfaction</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-gray-900">156</p>
-                <p className="text-sm text-gray-600">Today's Bookings</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-gray-900">$12,450</p>
-                <p className="text-sm text-gray-600">Today's Revenue</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <div className="flex items-center mt-2">
+                    {stat.changeType === 'positive' ? (
+                      <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                    )}
+                    <span className={`text-sm ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
+                      {stat.change}
+                    </span>
+                  </div>
+                </div>
+                <div className={`p-3 rounded-lg ${stat.color}`}>
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
               </div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Booking Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {bookingStatusCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                </div>
+                <div className={`p-3 rounded-lg ${stat.color}`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Charts and Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Bookings */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Bookings</h3>
+          </div>
+          <div className="p-6">
+            {data.recentBookings.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No recent bookings</p>
+            ) : (
+              <div className="space-y-4">
+                {data.recentBookings.slice(0, 5).map((booking: any) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {booking.customer?.user?.name || 'Unknown Customer'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {booking.store?.name} • {booking.storeService?.serviceType?.name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-900">₹{booking.totalPrice}</p>
+                      <p className={`text-sm px-2 py-1 rounded-full inline-block ${
+                        booking.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                        booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                        booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {booking.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div>
-          <RecentActivity activities={mockActivities} />
+        {/* Top Stores */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Top Performing Stores</h3>
+          </div>
+          <div className="p-6">
+            {data.topStores.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No stores found</p>
+            ) : (
+              <div className="space-y-4">
+                {data.topStores.map((store: any) => (
+                  <div key={store.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{store.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {store.owner?.user?.name} • {store._count.bookings} bookings
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">{store.address}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Popular Services */}
-      <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Services</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            { name: 'Haircut & Styling', bookings: 234 },
-            { name: 'Facial Treatment', bookings: 189 },
-            { name: 'Manicure & Pedicure', bookings: 156 },
-            { name: 'Hair Coloring', bookings: 134 }
-          ].map((service, index) => (
-            <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="font-semibold text-gray-900">{service.name}</p>
-              <p className="text-sm text-gray-600">{service.bookings} bookings</p>
+      {/* Monthly Revenue Chart */}
+      {data.analytics.monthlyRevenue.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Monthly Revenue</h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-3">
+              {data.analytics.monthlyRevenue.map((item: any, index: number) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">
+                    {new Date(item.month).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    ₹{item.revenue.toLocaleString()}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
-}
+};
+
+export default DashboardPage;

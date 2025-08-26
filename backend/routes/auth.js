@@ -108,7 +108,7 @@ router.post('/register/owner', async (req, res) => {
     });
 
     // Generate token
-    const token = generateToken(result.user.id, 'OWNER');
+    const token = generateToken(result.user.id, 'OWNER', result.user.role);
 
     res.status(201).json({
       message: 'Owner registered successfully',
@@ -191,7 +191,7 @@ router.post('/register/customer', async (req, res) => {
     });
 
     // Generate token
-    const token = generateToken(result.user.id, 'CUSTOMER');
+    const token = generateToken(result.user.id, 'CUSTOMER', result.user.role);
 
     res.status(201).json({
       message: 'Customer registered successfully',
@@ -243,7 +243,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user.id, user.userType);
+    const token = generateToken(user.id, user.userType, user.role);
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;

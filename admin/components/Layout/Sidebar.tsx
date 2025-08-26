@@ -10,10 +10,10 @@ import {
   Calendar, 
   Scissors, 
   BarChart3, 
-  Settings,
   LogOut,
   Building2,
-  UserCheck
+  UserCheck,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -50,14 +50,14 @@ const navigationItems = [
     icon: Scissors,
   },
   {
+    name: 'Payments',
+    href: '/dashboard/payments',
+    icon: CreditCard,
+  },
+  {
     name: 'Analytics',
     href: '/dashboard/analytics',
     icon: BarChart3,
-  },
-  {
-    name: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
   },
 ];
 
@@ -87,13 +87,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 h-screen ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-15 px-6 border-b border-gray-200">
             <h1 className="text-xl font-bold text-black">Make My Look</h1>
             <button
               onClick={onClose}
@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
             {navigationItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
               const Icon = item.icon;
 
               return (

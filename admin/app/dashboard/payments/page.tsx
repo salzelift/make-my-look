@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '@/lib/api';
-import { Booking, BookingStatus, PaymentStatus } from '@/lib/types';
+import { PaymentStatus } from '@/lib/types';
 import { 
   Search, 
-  Calendar,
-  Clock,
   DollarSign,
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
   User,
   Store,
   Scissors,
@@ -20,8 +22,42 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-interface BookingsResponse {
-  bookings: Booking[];
+interface Payment {
+  id: string;
+  totalPrice: number;
+  paidAmount: number;
+  paymentStatus: PaymentStatus;
+  bookingDate: string;
+  createdAt: string;
+  customer: {
+    user: {
+      name: string;
+      email: string;
+    };
+  };
+  store: {
+    name: string;
+    owner: {
+      user: {
+        name: string;
+      };
+    };
+  };
+  storeService: {
+    serviceType: {
+      name: string;
+    };
+  };
+}
+
+interface PaymentsResponse {
+  payments: Payment[];
+  statistics: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalPaid: number;
+    pendingAmount: number;
+  };
   pagination: {
     page: number;
     limit: number;
@@ -30,8 +66,9 @@ interface BookingsResponse {
   };
 }
 
-const BookingsPage = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+const PaymentsPage = () => {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
@@ -44,18 +81,16 @@ const BookingsPage = () => {
   // Filters
   const [filters, setFilters] = useState({
     search: '',
-    status: '',
     paymentStatus: '',
-    storeId: '',
     startDate: '',
     endDate: ''
   });
 
   useEffect(() => {
-    fetchBookings();
+    fetchPayments();
   }, [pagination.page, filters]);
 
-  const fetchBookings = async () => {
+  const fetchPayments = async () => {
     try {
       setLoading(true);
       const params = {
@@ -64,13 +99,14 @@ const BookingsPage = () => {
         ...filters
       };
       
-      const response = await adminAPI.getBookings(params);
-      const data: BookingsResponse = response.data;
+      const response = await adminAPI.getPayments(params);
+      const data: PaymentsResponse = response.data;
       
-      setBookings(data.bookings);
+      setPayments(data.payments);
+      setStatistics(data.statistics);
       setPagination(data.pagination);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch bookings');
+      setError(err.response?.data?.error || 'Failed to fetch payments');
     } finally {
       setLoading(false);
     }
@@ -83,21 +119,6 @@ const BookingsPage = () => {
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
-  };
-
-  const getStatusColor = (status: BookingStatus) => {
-    switch (status) {
-      case BookingStatus.COMPLETED:
-        return 'bg-green-100 text-green-800';
-      case BookingStatus.CONFIRMED:
-        return 'bg-blue-100 text-blue-800';
-      case BookingStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800';
-      case BookingStatus.CANCELLED:
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
@@ -115,20 +136,20 @@ const BookingsPage = () => {
     }
   };
 
-  const getStatusIcon = (status: BookingStatus) => {
+  const getPaymentStatusIcon = (status: PaymentStatus) => {
     switch (status) {
-      case BookingStatus.COMPLETED:
+      case PaymentStatus.FULL:
         return <CheckCircle className="w-4 h-4" />;
-      case BookingStatus.CANCELLED:
+      case PaymentStatus.REFUNDED:
         return <XCircle className="w-4 h-4" />;
-      case BookingStatus.PENDING:
+      case PaymentStatus.PARTIAL:
         return <AlertCircle className="w-4 h-4" />;
       default:
-        return <Clock className="w-4 h-4" />;
+        return <AlertCircle className="w-4 h-4" />;
     }
   };
 
-  if (loading && bookings.length === 0) {
+  if (loading && payments.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
@@ -141,11 +162,11 @@ const BookingsPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bookings Management</h1>
-          <p className="text-gray-600 mt-1">View and manage all platform bookings</p>
+          <h1 className="text-3xl font-bold text-gray-900">Payments Management</h1>
+          <p className="text-gray-600 mt-1">View and manage all payment transactions</p>
         </div>
         <button
-          onClick={fetchBookings}
+          onClick={fetchPayments}
           className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
         >
           <RefreshCw className="w-4 h-4" />
@@ -160,33 +181,73 @@ const BookingsPage = () => {
         </div>
       )}
 
+      {/* Payment Statistics */}
+      {statistics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-2xl font-bold text-gray-900">{statistics.totalBookings}</p>
+              </div>
+              <div className="p-3 bg-blue-500 rounded-lg">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">₹{statistics.totalRevenue.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-green-500 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Paid</p>
+                <p className="text-2xl font-bold text-gray-900">₹{statistics.totalPaid.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-yellow-500 rounded-lg">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Amount</p>
+                <p className="text-2xl font-bold text-gray-900">₹{statistics.pendingAmount.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-red-500 rounded-lg">
+                <TrendingDown className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search bookings..."
+              placeholder="Search payments..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
             />
           </div>
-
-          {/* Status Filter */}
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-          >
-            <option value="">All Statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="CONFIRMED">Confirmed</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
 
           {/* Payment Status Filter */}
           <select
@@ -219,7 +280,7 @@ const BookingsPage = () => {
 
           {/* Clear Filters */}
           <button
-            onClick={() => setFilters({ search: '', status: '', paymentStatus: '', storeId: '', startDate: '', endDate: '' })}
+            onClick={() => setFilters({ search: '', paymentStatus: '', startDate: '', endDate: '' })}
             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Clear Filters
@@ -227,29 +288,26 @@ const BookingsPage = () => {
         </div>
       </div>
 
-      {/* Bookings List */}
+      {/* Payments List */}
       <div className="space-y-4">
-        {bookings.map((booking) => (
-          <div key={booking.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {payments.map((payment) => (
+          <div key={payment.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Booking Info */}
+              {/* Payment Info */}
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {booking.storeService.serviceType.name}
+                      {payment.storeService.serviceType.name}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {booking.store.name} • {booking.store.owner.user.name}
+                      {payment.store.name} • {payment.store.owner.user.name}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-sm font-medium rounded-full flex items-center gap-1 ${getStatusColor(booking.status)}`}>
-                      {getStatusIcon(booking.status)}
-                      {booking.status}
-                    </span>
-                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                      {booking.paymentStatus}
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full flex items-center gap-1 ${getPaymentStatusColor(payment.paymentStatus)}`}>
+                      {getPaymentStatusIcon(payment.paymentStatus)}
+                      {payment.paymentStatus}
                     </span>
                   </div>
                 </div>
@@ -259,79 +317,70 @@ const BookingsPage = () => {
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{booking.customer.user.name}</p>
-                      <p className="text-xs text-gray-500">{booking.customer.user.email}</p>
+                      <p className="text-sm font-medium text-gray-900">{payment.customer.user.name}</p>
+                      <p className="text-xs text-gray-500">{payment.customer.user.email}</p>
                     </div>
                   </div>
 
-                  {/* Date & Time */}
+                  {/* Booking Date */}
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {new Date(booking.bookingDate).toLocaleDateString()}
+                        {new Date(payment.bookingDate).toLocaleDateString()}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {booking.startTime} - {booking.endTime}
-                      </p>
+                      <p className="text-xs text-gray-500">Booking Date</p>
                     </div>
                   </div>
 
-                  {/* Service Details */}
+                  {/* Service */}
                   <div className="flex items-center gap-2">
                     <Scissors className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        ₹{booking.storeService.price}
+                        {payment.storeService.serviceType.name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {booking.storeService.duration} min
-                      </p>
+                      <p className="text-xs text-gray-500">Service</p>
                     </div>
                   </div>
 
-                  {/* Payment */}
+                  {/* Payment Amount */}
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        ₹{booking.paidAmount} / ₹{booking.totalPrice}
+                        ₹{payment.paidAmount} / ₹{payment.totalPrice}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {booking.paymentStatus === 'FULL' ? 'Fully Paid' : 
-                         booking.paymentStatus === 'PARTIAL' ? 'Partially Paid' : 'Pending'}
+                        {payment.paymentStatus === 'FULL' ? 'Fully Paid' : 
+                         payment.paymentStatus === 'PARTIAL' ? 'Partially Paid' : 'Pending'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Employee Assignment */}
-                {booking.employee && (
+                {/* Payment Progress */}
+                {payment.paymentStatus === PaymentStatus.PARTIAL && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        Assigned to: {booking.employee.user.name} ({booking.employee.designation})
-                      </span>
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                      <span>Payment Progress</span>
+                      <span>{Math.round((payment.paidAmount / payment.totalPrice) * 100)}%</span>
                     </div>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {booking.notes && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Notes:</span> {booking.notes}
-                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-yellow-500 h-2 rounded-full" 
+                        style={{ width: `${(payment.paidAmount / payment.totalPrice) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Booking Meta */}
+            {/* Payment Meta */}
             <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
-              <span>Booking ID: {booking.id}</span>
-              <span>Created: {new Date(booking.createdAt).toLocaleString()}</span>
+              <span>Payment ID: {payment.id}</span>
+              <span>Created: {new Date(payment.createdAt).toLocaleString()}</span>
             </div>
           </div>
         ))}
@@ -383,10 +432,10 @@ const BookingsPage = () => {
       )}
 
       {/* Empty State */}
-      {bookings.length === 0 && !loading && (
+      {payments.length === 0 && !loading && (
         <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No bookings found</h3>
+          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
           <p className="text-gray-500">Try adjusting your filters or search terms.</p>
         </div>
       )}
@@ -394,4 +443,4 @@ const BookingsPage = () => {
   );
 };
 
-export default BookingsPage;
+export default PaymentsPage; 
