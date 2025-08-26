@@ -22,7 +22,7 @@ export default function BookingsScreen() {
     }
 
     if (user?.userType === 'OWNER') {
-      router.replace('/(tabs)/owner-dashboard');
+      router.replace('/(owner)/(tabs)/dashboard');
       return;
     }
 
@@ -96,7 +96,7 @@ export default function BookingsScreen() {
                   Start booking your favorite beauty services
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push('/(tabs)/')}
+                  onPress={() => router.push('/(customer)/(tabs)')}
                   className="bg-black rounded-lg px-6 py-3"
                 >
                   <Text className="text-white font-semibold">Find Salons</Text>

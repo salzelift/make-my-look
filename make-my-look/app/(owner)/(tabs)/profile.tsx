@@ -19,7 +19,7 @@ export default function OwnerProfileScreen() {
     }
 
     if (user?.userType !== 'OWNER') {
-      router.replace('/(tabs)/profile');
+      router.replace('/(customer)/(tabs)/profile');
       return;
     }
   }, [isAuthenticated, user]);
@@ -93,7 +93,7 @@ export default function OwnerProfileScreen() {
             
             <Button
               title="Edit Profile"
-              onPress={() => router.push('/owner/edit-profile')}
+              onPress={() => router.push('/(owner)/(tabs)/profile')}
               variant="outline"
               style={{ marginTop: 16 }}
             />
@@ -107,7 +107,7 @@ export default function OwnerProfileScreen() {
             
             <View className="space-y-3">
               <TouchableOpacity 
-                onPress={() => router.push('/(tabs)/owner-stores')}
+                onPress={() => router.push('/(owner)/(tabs)/stores')}
                 className="flex-row justify-between items-center py-3"
               >
                 <View className="flex-row items-center">
@@ -118,7 +118,7 @@ export default function OwnerProfileScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                onPress={() => router.push('/(tabs)/owner-bookings')}
+                onPress={() => router.push('/(owner)/(tabs)/bookings')}
                 className="flex-row justify-between items-center py-3"
               >
                 <View className="flex-row items-center">
@@ -129,43 +129,12 @@ export default function OwnerProfileScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                onPress={() => router.push('/owner/add-store')}
+                onPress={() => router.push('/(owner)/(tabs)/stores')}
                 className="flex-row justify-between items-center py-3"
               >
                 <View className="flex-row items-center">
                   <Text style={{ color: textColor }} className="text-lg mr-3">➕</Text>
                   <Text style={{ color: textColor }} className="text-base">Add New Store</Text>
-                </View>
-                <Text style={{ color: textColor }} className="text-lg">→</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
-
-          {/* Analytics */}
-          <Card style={{ marginBottom: 24 }}>
-            <Text style={{ color: textColor }} className="text-xl font-bold mb-4">
-              Analytics & Reports
-            </Text>
-            
-            <View className="space-y-3">
-              <TouchableOpacity 
-                onPress={() => router.push('/owner/analytics')}
-                className="flex-row justify-between items-center py-3"
-              >
-                <View className="flex-row items-center">
-                  <Text style={{ color: textColor }} className="text-lg mr-3">📊</Text>
-                  <Text style={{ color: textColor }} className="text-base">Business Analytics</Text>
-                </View>
-                <Text style={{ color: textColor }} className="text-lg">→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={() => router.push('/owner/revenue')}
-                className="flex-row justify-between items-center py-3"
-              >
-                <View className="flex-row items-center">
-                  <Text style={{ color: textColor }} className="text-lg mr-3">💰</Text>
-                  <Text style={{ color: textColor }} className="text-base">Revenue Reports</Text>
                 </View>
                 <Text style={{ color: textColor }} className="text-lg">→</Text>
               </TouchableOpacity>

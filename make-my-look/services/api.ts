@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthResponse, User, Store, ServiceType, Booking, TimeSlot, SearchFilters } from '@/types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://10.234.27.164:8001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -134,7 +134,7 @@ export const bookingsAPI = {
     storeServiceId: string;
     bookingDate: string;
     startTime: string;
-    paymentPercentage: 50 | 100;
+    paymentPercentage: 0 | 50 | 100;
     notes?: string;
   }): Promise<{ booking: Booking }> => {
     const response = await api.post('/bookings', data);
@@ -159,8 +159,117 @@ export const bookingsAPI = {
     return response.data;
   },
 
+  cancelBooking: async (bookingId: string) => {
+    const response = await api.delete(`/bookings/${bookingId}`);
+    return response.data;
+  },
+
   getAvailableSlots: async (storeId: string, serviceId: string, date: string): Promise<{ availableSlots: TimeSlot[] }> => {
     const response = await api.get(`/bookings/availability/${storeId}/${serviceId}/${date}`);
+    return response.data;
+  },
+};
+
+// Payments API
+export const paymentsAPI = {
+  createOrder: async (data: {
+    amount: number;
+    currency?: string;
+    bookingId?: string;
+  }) => {
+    const response = await api.post('/payments/create-order', data);
+    return response.data;
+  },
+
+  verifyPayment: async (data: {
+    orderId: string;
+    paymentId: string;
+    signature: string;
+    bookingId?: string;
+  }) => {
+    const response = await api.post('/payments/verify-payment', data);
+    return response.data;
+  },
+
+  processPayment: async (bookingId: string, data: {
+    paymentMethod: string;
+    paymentAmount: number;
+  }) => {
+    const response = await api.post(`/payments/booking/${bookingId}`, data);
+    return response.data;
+  },
+
+  getPaymentStatus: async (bookingId: string) => {
+    const response = await api.get(`/payments/booking/${bookingId}/status`);
+    return response.data;
+  },
+};
+
+// Employees API
+export const employeesAPI = {
+  getStoreEmployees: async (storeId: string, filters?: {
+    status?: string;
+    role?: string;
+  }) => {
+    const response = await api.get(`/employees/store/${storeId}`, { params: filters });
+    return response.data;
+  },
+
+  addEmployee: async (storeId: string, data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    designation: string;
+    role: string;
+    salary?: number;
+    employeeId?: string;
+  }) => {
+    const response = await api.post(`/employees/store/${storeId}`, data);
+    return response.data;
+  },
+
+  updateEmployee: async (employeeId: string, data: {
+    name?: string;
+    email?: string;
+    phoneNumber?: string;
+    designation?: string;
+    role?: string;
+    salary?: number;
+    isActive?: boolean;
+  }) => {
+    const response = await api.put(`/employees/${employeeId}`, data);
+    return response.data;
+  },
+
+  removeEmployee: async (storeId: string, employeeId: string) => {
+    const response = await api.delete(`/employees/store/${storeId}/employee/${employeeId}`);
+    return response.data;
+  },
+
+  setEmployeeAvailability: async (employeeId: string, data: {
+    storeId: string;
+    availability: Array<{
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      isActive?: boolean;
+    }>;
+  }) => {
+    const response = await api.post(`/employees/${employeeId}/availability`, data);
+    return response.data;
+  },
+
+  getEmployeeAvailability: async (employeeId: string, storeId: string) => {
+    const response = await api.get(`/employees/${employeeId}/availability/${storeId}`);
+    return response.data;
+  },
+
+  getEmployeeStats: async (employeeId: string, storeId: string, filters?: {
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    const response = await api.get(`/employees/${employeeId}/stats/${storeId}`, { params: filters });
     return response.data;
   },
 };

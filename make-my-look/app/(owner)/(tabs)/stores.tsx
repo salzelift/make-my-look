@@ -23,7 +23,7 @@ export default function OwnerStoresScreen() {
     }
 
     if (user?.userType !== 'OWNER') {
-      router.replace('/(tabs)/');
+      router.replace('/(customer)/(tabs)/bookings');
       return;
     }
 
@@ -61,7 +61,7 @@ export default function OwnerStoresScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => router.push('/owner/add-store')}
+              onPress={() => router.push('/(owner)/(tabs)/stores')}
               className="bg-black rounded-lg px-4 py-2"
             >
               <Text className="text-white font-semibold">+ Add Store</Text>
@@ -87,7 +87,7 @@ export default function OwnerStoresScreen() {
                 </Text>
                 <Button
                   title="Add Your First Store"
-                  onPress={() => router.push('/owner/add-store')}
+                  onPress={() => router.push('/(owner)/(tabs)/stores')}
                   variant="primary"
                 />
               </View>
@@ -97,7 +97,7 @@ export default function OwnerStoresScreen() {
               {stores.map((store) => (
                 <TouchableOpacity
                   key={store.id}
-                  onPress={() => router.push(`/owner/store/${store.id}`)}
+                  onPress={() => router.push(`/store/${store.id}`)}
                 >
                   <Card>
                     <View className="flex-row justify-between items-start mb-3">

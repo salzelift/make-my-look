@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { customersAPI, storesAPI } from '@/services/api';
+import { customersAPI, servicesAPI } from '@/services/api';
 import { Store, ServiceType } from '@/types';
 
-export default function CustomerHomeScreen() {
+export default function SearchScreen() {
   const { user, isAuthenticated } = useAuth();
-  const [stores, setStores] = useState<Store[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [stores, setStores] = useState<Store[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -25,29 +27,39 @@ export default function CustomerHomeScreen() {
     }
 
     if (user?.userType === 'OWNER') {
-      router.replace('/(tabs)/owner-dashboard');
+      router.replace('/(owner)/(tabs)/dashboard');
       return;
     }
 
-    loadStores();
+    loadServiceTypes();
   }, [isAuthenticated, user]);
 
-  const loadStores = async () => {
+  const loadServiceTypes = async () => {
     try {
-      setLoading(true);
-      const response = await storesAPI.getAllStores();
-      setStores(response.stores);
+      const response = await servicesAPI.getServiceTypes();
+      setServiceTypes(response.services);
     } catch (error) {
-      console.error('Failed to load stores:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load service types:', error);
     }
   };
 
   const handleSearch = async () => {
     try {
       setLoading(true);
-      const response = await customersAPI.searchStores({ query: searchQuery });
+      const filters: any = {};
+      
+      if (searchQuery.trim()) {
+        filters.query = searchQuery.trim();
+      }
+      
+      if (selectedCategory) {
+        const categoryServices = serviceTypes.filter(s => s.category === selectedCategory);
+        if (categoryServices.length > 0) {
+          filters.serviceType = categoryServices[0].id; // Use first service of category for now
+        }
+      }
+
+      const response = await customersAPI.searchStores(filters);
       setStores(response.stores);
     } catch (error) {
       console.error('Search failed:', error);
@@ -56,13 +68,10 @@ export default function CustomerHomeScreen() {
     }
   };
 
-  const filteredStores = stores.filter(store =>
-    store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    store.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = [...new Set(serviceTypes.map(s => s.category))];
 
-  if (!isAuthenticated) {
-    return null; // Will redirect to auth
+  if (!isAuthenticated || user?.userType !== 'CUSTOMER') {
+    return null; // Will redirect
   }
 
   return (
@@ -72,25 +81,25 @@ export default function CustomerHomeScreen() {
           {/* Header */}
           <View className="mb-8">
             <Text style={{ color: textColor }} className="text-3xl font-bold mb-2">
-              Find Your Salon
+              Search Salons
             </Text>
             <Text style={{ color: textColor }} className="text-base opacity-70">
-              Discover and book premium beauty services
+              Find the perfect salon for your needs
             </Text>
           </View>
 
-          {/* Search */}
+          {/* Search Input */}
           <View className="mb-6">
             <View className="flex-row">
               <View className="flex-1 mr-3">
                 <TextInput
-                  className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+                  className="border rounded-lg px-4 py-3 text-base"
                   style={{ 
                     backgroundColor: useThemeColor({}, 'inputBackground'),
                     color: textColor,
                     borderColor: useThemeColor({}, 'border')
                   }}
-                  placeholder="Search salons or services..."
+                  placeholder="Search by salon name or location..."
                   placeholderTextColor={placeholderColor}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -106,50 +115,82 @@ export default function CustomerHomeScreen() {
             </View>
           </View>
 
-          {/* Featured Services */}
+          {/* Categories */}
           <View className="mb-6">
             <Text style={{ color: textColor }} className="text-xl font-bold mb-4">
-              Popular Services
+              Browse by Category
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-3">
-                {['Haircut', 'Facial', 'Manicure', 'Massage'].map((service) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedCategory('');
+                    handleSearch();
+                  }}
+                  className={`rounded-full px-6 py-3 border ${
+                    selectedCategory === '' 
+                      ? 'bg-black border-black' 
+                      : 'border-gray-300'
+                  }`}
+                >
+                  <Text className={`font-semibold ${
+                    selectedCategory === '' ? 'text-white' : 'text-black'
+                  }`}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                
+                {categories.map((category) => (
                   <TouchableOpacity
-                    key={service}
-                    className="bg-black rounded-full px-6 py-3"
+                    key={category}
                     onPress={() => {
-                      setSearchQuery(service);
+                      setSelectedCategory(category);
                       handleSearch();
                     }}
+                    className={`rounded-full px-6 py-3 border ${
+                      selectedCategory === category 
+                        ? 'bg-black border-black' 
+                        : 'border-gray-300'
+                    }`}
                   >
-                    <Text className="text-white font-semibold">{service}</Text>
+                    <Text className={`font-semibold ${
+                      selectedCategory === category ? 'text-white' : 'text-black'
+                    }`}>
+                      {category}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
           </View>
 
-          {/* Stores List */}
+          {/* Search Results */}
           <View className="mb-6">
             <Text style={{ color: textColor }} className="text-xl font-bold mb-4">
-              {searchQuery ? 'Search Results' : 'Nearby Salons'}
+              {stores.length > 0 ? 'Search Results' : 'Popular Salons'}
             </Text>
 
             {loading ? (
               <View className="py-8">
                 <Text style={{ color: textColor }} className="text-center opacity-70">
-                  Loading salons...
+                  Searching...
                 </Text>
               </View>
-            ) : filteredStores.length === 0 ? (
-              <View className="py-8">
-                <Text style={{ color: textColor }} className="text-center opacity-70">
-                  No salons found
-                </Text>
-              </View>
+            ) : stores.length === 0 ? (
+              <Card>
+                <View className="items-center py-8">
+                  <Text style={{ color: textColor }} className="text-4xl mb-4">🔍</Text>
+                  <Text style={{ color: textColor }} className="text-lg font-bold mb-2">
+                    No Results Found
+                  </Text>
+                  <Text style={{ color: textColor }} className="text-base opacity-70 text-center">
+                    Try adjusting your search terms or browse by category
+                  </Text>
+                </View>
+              </Card>
             ) : (
               <View className="space-y-4">
-                {filteredStores.map((store) => (
+                {stores.map((store) => (
                   <TouchableOpacity
                     key={store.id}
                     onPress={() => router.push(`/store/${store.id}`)}
@@ -164,26 +205,38 @@ export default function CustomerHomeScreen() {
                             {store.address}
                           </Text>
                           
+                          {store.owner && (
+                            <Text style={{ color: textColor }} className="text-sm opacity-70 mb-2">
+                              Owner: {store.owner.user.name}
+                            </Text>
+                          )}
+                          
                           {store.services.length > 0 && (
                             <View className="flex-row flex-wrap">
-                              {store.services.slice(0, 3).map((service) => (
+                              {store.services.slice(0, 4).map((service) => (
                                 <View
                                   key={service.id}
-                                  className="bg-gray-100 rounded-full px-2 py-1 mr-2 mb-1"
+                                  className="bg-gray-100 rounded-full px-3 py-1 mr-2 mb-1"
                                 >
-                                  <Text className="text-xs text-black">
-                                    {service.serviceType.name}
+                                  <Text className="text-xs text-black font-medium">
+                                    {service.serviceType.name} • ${service.price}
                                   </Text>
                                 </View>
                               ))}
-                              {store.services.length > 3 && (
-                                <View className="bg-gray-100 rounded-full px-2 py-1">
-                                  <Text className="text-xs text-black">
-                                    +{store.services.length - 3} more
+                              {store.services.length > 4 && (
+                                <View className="bg-gray-100 rounded-full px-3 py-1">
+                                  <Text className="text-xs text-black font-medium">
+                                    +{store.services.length - 4} more
                                   </Text>
                                 </View>
                               )}
                             </View>
+                          )}
+
+                          {store.distance && (
+                            <Text style={{ color: textColor }} className="text-sm opacity-70 mt-2">
+                              📍 {store.distance.toFixed(1)} km away
+                            </Text>
                           )}
                         </View>
                         

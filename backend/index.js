@@ -9,6 +9,8 @@ const customerRoutes = require('./routes/customers');
 const storeRoutes = require('./routes/stores');
 const bookingRoutes = require('./routes/bookings');
 const serviceRoutes = require('./routes/services');
+const paymentRoutes = require('./routes/payments');
+const employeeRoutes = require('./routes/employees');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +27,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/employees', employeeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

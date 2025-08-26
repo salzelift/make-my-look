@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Predefined salon services
@@ -26,6 +27,7 @@ model ServiceType {
 enum UserType {
   OWNER
   CUSTOMER
+  EMPLOYEE
 }
 
 // Base user model
@@ -42,6 +44,7 @@ model User {
   // Relations
   owner    Owner?
   customer Customer?
+  employee Employee?
 }
 
 // Owner profile
@@ -69,6 +72,25 @@ model Customer {
   @@map("customers")
 }
 
+// Employee profile
+model Employee {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId  String   @unique // Custom employee ID
+  designation String   // e.g., "Hair Stylist", "Nail Technician", "Manager"
+  hireDate    DateTime @default(now())
+  salary      Float?
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  storeEmployees StoreEmployee[]
+  bookings       Booking[] // Bookings assigned to this employee
+  availability   EmployeeAvailability[]
+  
+  @@map("employees")
+}
+
 // Store/Salon
 model Store {
   id          String   @id @default(uuid())
@@ -84,11 +106,31 @@ model Store {
   updatedAt   DateTime @updatedAt
   
   // Relations
-  services      StoreService[]
-  bookings      Booking[]
-  availability  StoreAvailability[]
+  services        StoreService[]
+  bookings        Booking[]
+  availability    StoreAvailability[]
+  storeEmployees  StoreEmployee[]
+  employeeAvailability EmployeeAvailability[]
   
   @@map("stores")
+}
+
+// Store-Employee relationship (Many-to-Many)
+model StoreEmployee {
+  id         String   @id @default(uuid())
+  storeId    String
+  employeeId String
+  role       String   // e.g., "Hair Stylist", "Nail Technician", "Manager"
+  isActive   Boolean  @default(true)
+  joinedAt   DateTime @default(now())
+  leftAt     DateTime?
+  
+  // Relations
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([storeId, employeeId])
+  @@map("store_employees")
 }
 
 // Services offered by a store
@@ -126,6 +168,24 @@ model StoreAvailability {
   @@map("store_availability")
 }
 
+// Employee availability
+model EmployeeAvailability {
+  id         String   @id @default(uuid())
+  employeeId String
+  storeId    String
+  dayOfWeek  Int      // 0 = Sunday, 1 = Monday, etc.
+  startTime  String   // Format: "09:00"
+  endTime    String   // Format: "18:00"
+  isActive   Boolean  @default(true)
+  
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, storeId, dayOfWeek])
+  @@map("employee_availability")
+}
+
 // Booking status enum
 enum BookingStatus {
   PENDING
@@ -148,6 +208,7 @@ model Booking {
   customerId      String
   storeId         String
   storeServiceId  String
+  employeeId      String?       // Optional: assigned employee
   bookingDate     DateTime
   startTime       String        // Format: "14:30"
   endTime         String        // Format: "15:30"
@@ -163,6 +224,7 @@ model Booking {
   customer     Customer     @relation(fields: [customerId], references: [id])
   store        Store        @relation(fields: [storeId], references: [id])
   storeService StoreService @relation(fields: [storeServiceId], references: [id])
+  employee     Employee?    @relation(fields: [employeeId], references: [id])
   
   @@map("bookings")
 }

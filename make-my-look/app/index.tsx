@@ -18,9 +18,9 @@ export default function IndexScreen() {
 
     // Redirect based on user type
     if (user?.userType === 'OWNER') {
-      router.replace('/(tabs)/owner-dashboard');
+      router.replace('/(owner)/(tabs)/dashboard');
     } else {
-      router.replace('/(tabs)/');
+      router.replace('/(customer)/(tabs)');
     }
   }, [isAuthenticated, user, isLoading]);
 

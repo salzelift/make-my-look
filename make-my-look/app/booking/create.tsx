@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
-import { bookingsAPI } from '@/services/api';
+import { bookingsAPI, paymentsAPI } from '@/services/api';
 import { TimeSlot } from '@/types';
+import BookingPaymentButton from '@/components/booking-payment-button';
 
 export default function CreateBookingScreen() {
   const params = useLocalSearchParams<{
@@ -28,6 +29,7 @@ export default function CreateBookingScreen() {
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -74,32 +76,59 @@ export default function CreateBookingScreen() {
       return;
     }
 
-    setLoading(true);
-    try {
-      await bookingsAPI.createBooking({
-        storeId: params.storeId!,
-        storeServiceId: params.serviceId!,
-        bookingDate: selectedDate,
-        startTime: selectedSlot.startTime,
-        paymentPercentage,
-        notes: notes.trim() || undefined,
-      });
+    // For both 50% and 100% payments, show payment screen
+    setShowPayment(true);
+  };
 
+  const handlePaymentSuccess = () => {
+    if (paymentPercentage === 100) {
       Alert.alert(
-        'Booking Confirmed!',
-        `Your appointment has been booked for ${selectedDate} at ${selectedSlot.startTime}`,
+        'Payment & Booking Confirmed!',
+        `Your appointment has been booked for ${selectedDate} at ${selectedSlot?.startTime}. Full payment has been processed successfully.`,
         [
           {
             text: 'View Bookings',
-            onPress: () => router.push('/(tabs)/bookings')
+            onPress: () => router.push('/(customer)/(tabs)/bookings')
           }
         ]
       );
-    } catch (error: any) {
-      Alert.alert('Booking Failed', error.response?.data?.error || 'Failed to create booking');
-    } finally {
-      setLoading(false);
+    } else {
+      Alert.alert(
+        'Partial Payment & Booking Confirmed!',
+        `Your appointment has been booked for ${selectedDate} at ${selectedSlot?.startTime}. ${paymentPercentage}% payment has been processed. Please pay the remaining amount at the salon.`,
+        [
+          {
+            text: 'View Bookings',
+            onPress: () => router.push('/(customer)/(tabs)/bookings')
+          }
+        ]
+      );
     }
+    // Reset the form
+    setShowPayment(false);
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error('Payment error:', error);
+    Alert.alert(
+      'Payment Failed',
+      'Would you like to retry payment?',
+      [
+        {
+          text: 'Retry Payment',
+          onPress: () => {
+            // The payment button will be re-enabled for retry
+          }
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => {
+            setShowPayment(false);
+          }
+        }
+      ]
+    );
   };
 
   const generateDateOptions = () => {
@@ -375,15 +404,52 @@ export default function CreateBookingScreen() {
             </View>
           </Card>
 
-          {/* Book Button */}
-          <Button
-            title={`Book & Pay $${paymentAmount.toFixed(2)}`}
-            onPress={handleBooking}
-            loading={loading}
-            disabled={!selectedDate || !selectedSlot}
-            size="large"
-            style={{ marginBottom: 24 }}
-          />
+          {/* Payment Flow Note */}
+          <Card style={{ marginBottom: 16 }}>
+            <Text style={{ color: textColor }} className="text-sm opacity-70 text-center">
+              💳 {paymentPercentage === 100 
+                ? 'Complete payment to create and confirm your booking.'
+                : `Pay ${paymentPercentage}% now to reserve your slot. Pay remaining at salon.`
+              }
+            </Text>
+          </Card>
+
+          {/* Book Button or Payment Button */}
+          {loading ? (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ color: textColor }} className="text-lg font-semibold mb-4 text-center">
+                Creating your booking...
+              </Text>
+              <Loading />
+            </View>
+          ) : showPayment ? (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ color: textColor }} className="text-lg font-semibold mb-4 text-center">
+                Complete Payment to Confirm Booking
+              </Text>
+              <BookingPaymentButton
+                amount={paymentAmount}
+                paymentPercentage={paymentPercentage}
+                bookingData={{
+                  storeId: params.storeId!,
+                  storeServiceId: params.serviceId!,
+                  bookingDate: selectedDate,
+                  startTime: selectedSlot!.startTime,
+                  notes: notes.trim() || undefined,
+                }}
+                onPaymentSuccess={handlePaymentSuccess}
+                onPaymentError={handlePaymentError}
+              />
+            </View>
+          ) : (
+            <Button
+              title={`Pay $${paymentAmount.toFixed(2)}`}
+              onPress={handleBooking}
+              disabled={!selectedDate || !selectedSlot}
+              size="large"
+              style={{ marginBottom: 24 }}
+            />
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

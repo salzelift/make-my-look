@@ -26,7 +26,7 @@ export default function OwnerBookingsScreen() {
     }
 
     if (user?.userType !== 'OWNER') {
-      router.replace('/(tabs)/');
+      router.replace('/(customer)/(tabs)');
       return;
     }
 

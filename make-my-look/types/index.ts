@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   phoneNumber: string;
-  userType: 'OWNER' | 'CUSTOMER';
+  userType: 'OWNER' | 'CUSTOMER' | 'EMPLOYEE';
 }
 
 export interface ServiceType {
@@ -49,6 +49,53 @@ export interface StoreAvailability {
   isActive: boolean;
 }
 
+export interface Employee {
+  id: string;
+  employeeId: string;
+  designation: string;
+  hireDate: string;
+  salary?: number;
+  isActive: boolean;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+  };
+}
+
+export interface StoreEmployee {
+  id: string;
+  role: string;
+  isActive: boolean;
+  joinedAt: string;
+  leftAt?: string;
+  employee: Employee;
+}
+
+export interface EmployeeAvailability {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
+export interface EmployeeStats {
+  employeeId: string;
+  employeeName: string;
+  period: {
+    startDate?: string;
+    endDate?: string;
+  };
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  completionRate: number;
+  totalRevenue: number;
+  averageRevenue: number;
+}
+
 export interface Booking {
   id: string;
   bookingDate: string;
@@ -59,6 +106,7 @@ export interface Booking {
   paymentStatus: 'PENDING' | 'PARTIAL' | 'FULL' | 'REFUNDED';
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
+  employeeId?: string;
   store: Store;
   storeService: StoreService;
   customer?: {
@@ -66,6 +114,11 @@ export interface Booking {
       name: string;
       phoneNumber: string;
       email: string;
+    };
+  };
+  employee?: {
+    user: {
+      name: string;
     };
   };
 }

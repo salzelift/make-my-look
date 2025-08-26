@@ -164,21 +164,21 @@ router.post('/', authenticateToken, requireOwner, async (req, res) => {
         }
       });
 
-      // Add services to store
-      const storeServices = await Promise.all(
-        serviceIds.map(serviceId => 
-          tx.storeService.create({
-            data: {
-              storeId: store.id,
-              serviceTypeId: serviceId,
-              price: 0, // Will be updated later
-              duration: 60 // Default 1 hour
-            }
-          })
-        )
-      );
+      // Add services to store using createMany for better performance
+      const storeServicesData = serviceIds.map(serviceId => ({
+        storeId: store.id,
+        serviceTypeId: serviceId,
+        price: 0, // Will be updated later
+        duration: 60 // Default 1 hour
+      }));
+
+      const storeServices = await tx.storeService.createMany({
+        data: storeServicesData
+      });
 
       return { store, storeServices };
+    }, {
+      timeout: 10000 // Increase timeout to 10 seconds
     });
 
     res.status(201).json({

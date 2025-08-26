@@ -97,7 +97,7 @@ export default function AddStoreScreen() {
         [
           {
             text: 'View Stores',
-            onPress: () => router.push('/(tabs)/owner-stores')
+            onPress: () => router.push('/(owner)/(tabs)/stores')
           }
         ]
       );
