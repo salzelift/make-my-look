@@ -90,7 +90,7 @@ export default function OwnerDashboardScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-8">
           {/* Header */}
-          <View className="flex-row justify-between items-center mb-8">
+          <View className="flex-row justify-between items-center mb-8 mt-10">
             <View>
               <Text style={{ color: textColor }} className="text-3xl font-bold mb-2">
                 Dashboard
@@ -186,7 +186,7 @@ export default function OwnerDashboardScreen() {
                 <Text style={{ color: textColor }} className="text-xl font-bold mb-6">
                   Quick Actions
                 </Text>
-                <View className="space-y-4">
+                <View className="space-y-4 gap-4">
                   <Button
                     title="Manage Stores"
                     onPress={() => router.push('/(owner)/(tabs)/stores')}
@@ -207,6 +207,20 @@ export default function OwnerDashboardScreen() {
                     variant="primary"
                     size="large"
                     icon="➕"
+                  />
+                  <Button
+                    title="Add Bank Account"
+                    onPress={() => router.push('/owner/bank-account')}
+                    variant="outline"
+                    size="large"
+                    icon="🏦"
+                  />
+                  <Button
+                    title="View Payments"
+                    onPress={() => router.push('/owner/payments')}
+                    variant="outline"
+                    size="large"
+                    icon="💰"
                   />
                 </View>
               </Card>
@@ -235,7 +249,7 @@ export default function OwnerDashboardScreen() {
                     </Text>
                   </View>
                 ) : (
-                  <View className="space-y-4">
+                  <View className="space-y-4 gap-4">
                     {recentBookings.slice(0, 5).map((booking: any) => {
                       const statusConfig = getStatusColor(booking.status);
                       const StatusIcon = statusConfig.icon;

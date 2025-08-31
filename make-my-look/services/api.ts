@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthResponse, User, Store, ServiceType, Booking, TimeSlot, SearchFilters } from '@/types';
 
-const API_BASE_URL = 'http://10.234.27.164:8001/api';
+const API_BASE_URL = 'http://192.168.144.99:8001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -313,6 +313,29 @@ export const ownersAPI = {
 
   getDashboard: async () => {
     const response = await api.get('/owners/dashboard');
+    return response.data;
+  },
+
+  createBankAccount: async (data: {
+    accountName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    branchName: string;
+    accountType: string;
+    accountHolderName: string;
+  }) => {
+    const response = await api.post('/owners/create-bank-account', data);
+    return response.data;
+  },
+
+  getBankAccount: async () => {
+    const response = await api.get('/owners/bank-account');
+    return response.data;
+  },
+
+  getPaymentPayouts: async () => {
+    const response = await api.get('/owners/payment-payouts');
     return response.data;
   },
 };

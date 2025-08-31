@@ -1,6 +1,12 @@
 const express = require('express');
 const { authenticateToken, requireOwner } = require('../middleware/auth');
 const prisma = require('../utils/database');
+const Razorpay = require('razorpay');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 const router = express.Router();
 
@@ -147,4 +153,137 @@ router.get('/dashboard', authenticateToken, requireOwner, async (req, res) => {
   }
 });
 
+// Create or update bank account
+router.post('/create-bank-account', authenticateToken, requireOwner, async (req, res) => {
+  try {
+
+    const { accountName, accountNumber, ifscCode, bankName, branchName, accountType, accountHolderName } = req.body;
+    const owner = await prisma.owner.findUnique({
+      where: { userId: req.userId },
+      include: {
+        bankAccount: true,
+        user: true
+      }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Owner profile not found' });
+    }
+
+    if (!accountName || !accountNumber || !ifscCode || !bankName || !branchName || !accountType || !accountHolderName) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    let bankAccount;
+    
+    if (owner.bankAccount) {
+      // Update existing bank account
+      bankAccount = await prisma.bankAccount.update({
+        where: { id: owner.bankAccount.id },
+        data: {
+          accountName,
+          accountNumber,
+          ifscCode,
+          accountHolderName,
+          bankName,
+          branchName,
+          accountType
+        }
+      });
+    } else {
+      // Create new bank account
+      bankAccount = await prisma.bankAccount.create({
+        data: {
+          accountName,
+          accountNumber,
+          ifscCode,
+          accountHolderName,
+          bankName,
+          branchName,
+          accountType,
+          ownerId: owner.id
+        }
+      });
+    }
+
+    const contact = await razorpay.contacts.create({
+      name: accountHolderName,
+      email: owner.user.email,
+      phone: owner.user.phoneNumber,
+      type: 'vendor'
+    });
+
+    const fundAccount = await razorpay.fundAccount.create({
+      contact_id: contact.id,
+      account_type: 'bank_account',
+      bank_account: {
+        name: accountHolderName,
+        ifsc: ifscCode,
+        account_number: accountNumber,
+      }
+    });
+
+    await prisma.bankAccount.update({
+      where: { id: bankAccount.id },
+      data: { contactId: contact.id, fundAccountId: fundAccount.id }
+    });
+    
+    res.json({ bankAccount });
+  } catch (error) {
+    console.error('Error creating/updating bank account:', error);
+    res.status(500).json({ error: 'Failed to create/update bank account' });
+  }
+});
+
+// Get bank account
+router.get('/bank-account', authenticateToken, requireOwner, async (req, res) => {
+  try {
+    const owner = await prisma.owner.findUnique({
+      where: { userId: req.userId },
+      include: {
+        bankAccount: true
+      }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Owner profile not found' });
+    }
+
+    res.json({ bankAccount: owner.bankAccount });
+  } catch (error) {
+    console.error('Error fetching bank account:', error);
+    res.status(500).json({ error: 'Failed to fetch bank account' });
+  }
+});
+
+router.get('/payment-payouts', authenticateToken, requireOwner, async (req, res) => {
+  try {
+    const owner = await prisma.owner.findUnique({
+      where: { userId: req.userId }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Owner profile not found' });
+    }
+
+    const paymentPayouts = await prisma.payments.findMany({
+      where: { paidToId: owner.id },
+      include: {
+        paidBy: {
+          include: {
+            user: {
+              select: { name: true, email: true, phoneNumber: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ paymentPayouts });
+  } catch (error) {
+    console.error('Error fetching payment payouts:', error);
+    res.status(500).json({ error: 'Failed to fetch payment payouts' });
+  }
+});
 module.exports = router;

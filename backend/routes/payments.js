@@ -235,6 +235,25 @@ router.post('/webhook', async (req, res) => {
     // Process webhook event
     const result = await RazorpayService.processWebhookEvent(event, payload);
 
+    const { payment } = result;
+    const { amount, status } = payment;
+    const { customerId, ownerId } = payment;
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId }
+    });
+    const owner = await prisma.owner.findUnique({
+      where: { id: ownerId }
+    });
+    if (customer && owner) {
+      await prisma.payments.create({
+        data: {
+          amount: amount,
+          paidById: customerId,
+          paidToId: ownerId
+        }
+      });
+    }
+
     if (result.success) {
       console.log(`Webhook processed successfully: ${event}`);
       res.json({ success: true, message: 'Webhook processed' });

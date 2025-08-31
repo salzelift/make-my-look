@@ -28,6 +28,9 @@ app.use((req, res, next)=>{
   next();
 })
 
+// cron job for payout
+require('./utils/payout-cron');
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/owners', ownerRoutes);

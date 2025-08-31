@@ -59,11 +59,31 @@ model Owner {
   id     String @id @default(uuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  razorpayAccountId String?
+  bankAccount BankAccount?
+
   // Relations
   stores Store[]
+  payments Payments[]
   
   @@map("owners")
+}
+
+model BankAccount {
+  id String @id @default(uuid())
+  accountName String
+  accountNumber String
+  ifscCode String
+  bankName String
+  branchName String
+  accountType String
+  accountHolderName String
+  contactId   String?  // razorpayX contact ID
+  fundAccountId String?  // razorpayX fund account ID
+  ownerId String @unique
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("bank_accounts")
 }
 
 // Customer profile
@@ -72,10 +92,11 @@ model Customer {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   preferredServices String[] // Array of service type IDs
+  payments Payments[]
   
   // Relations
   bookings Booking[]
-  
+
   @@map("customers")
 }
 
@@ -231,7 +252,27 @@ model Booking {
   customer     Customer     @relation(fields: [customerId], references: [id])
   store        Store        @relation(fields: [storeId], references: [id])
   storeService StoreService @relation(fields: [storeServiceId], references: [id])
-  employee     Employee?    @relation(fields: [employeeId], references: [id])
-  
+  employee     Employee?    @relation(fields: [employeeId], references: [id])  
   @@map("bookings")
+}
+
+enum PaymentPayoutStatus {
+  PENDING
+  PAIDOUT
+}
+
+
+model Payments {
+  id String @id @default(uuid())
+  amount Float
+  paidBy  Customer @relation(fields: [paidById], references: [id])
+  paidById String
+  paidTo  Owner @relation(fields: [paidToId], references: [id])
+  paidToId String
+  status PaymentPayoutStatus @default(PENDING)
+  payoutId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("payments")
 }

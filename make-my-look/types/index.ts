@@ -147,3 +147,30 @@ export interface SearchFilters {
   longitude?: number;
   radius?: number;
 }
+
+export interface BankAccount {
+  id: string;
+  accountName: string;
+  accountNumber: string;
+  ifscCode: string;
+  bankName: string;
+  branchName: string;
+  accountType: string;
+  accountHolderName: string;
+  ownerId: string;
+}
+
+export interface PaymentPayout {
+  id: string;
+  amount: number;
+  status: 'PENDING' | 'PAIDOUT';
+  createdAt: string;
+  updatedAt: string;
+  paidBy: {
+    user: {
+      name: string;
+      email: string;
+      phoneNumber: string;
+    };
+  };
+}

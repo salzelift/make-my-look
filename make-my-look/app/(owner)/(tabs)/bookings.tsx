@@ -5,7 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { storesAPI, bookingsAPI } from '@/services/api';
+import { Modal } from '@/components/ui/Modal';
+import { storesAPI, bookingsAPI, paymentsAPI } from '@/services/api';
 import { Store, Booking } from '@/types';
 
 export default function OwnerBookingsScreen() {
@@ -15,6 +16,9 @@ export default function OwnerBookingsScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -82,6 +86,42 @@ export default function OwnerBookingsScreen() {
     }
   };
 
+  const handleMarkAsCompleted = (booking: Booking) => {
+    if (booking.paymentStatus === 'PARTIAL') {
+      setSelectedBooking(booking);
+      setShowPaymentModal(true);
+    } else {
+      updateBookingStatus(booking.id, 'COMPLETED');
+    }
+  };
+
+  const handlePaymentConfirmation = async (paymentMade: boolean) => {
+    if (selectedBooking) {
+      setProcessingPayment(true);
+      try {
+        if (paymentMade) {
+          // Calculate remaining amount
+          const remainingAmount = selectedBooking.totalPrice - selectedBooking.paidAmount;
+          
+          // Process the remaining payment
+          await paymentsAPI.processPayment(selectedBooking.id, {
+            paymentMethod: 'CASH', // Assuming cash payment at salon
+            paymentAmount: remainingAmount
+          });
+        }
+        
+        // Mark as completed
+        await updateBookingStatus(selectedBooking.id, 'COMPLETED');
+      } catch (error) {
+        console.error('Failed to process payment confirmation:', error);
+        // Still mark as completed even if payment processing fails
+        await updateBookingStatus(selectedBooking.id, 'COMPLETED');
+      } finally {
+        setProcessingPayment(false);
+      }
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONFIRMED': return 'bg-green-100 text-green-800';
@@ -101,7 +141,7 @@ export default function OwnerBookingsScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-8">
           {/* Header */}
-          <View className="mb-8">
+          <View className="mb-8 mt-10">
             <Text style={{ color: textColor }} className="text-3xl font-bold mb-2">
               Bookings
             </Text>
@@ -117,7 +157,7 @@ export default function OwnerBookingsScreen() {
                 Select Store
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row space-x-3">
+                <View className="flex-row space-x-3 gap-3">
                   {stores.map((store) => (
                     <TouchableOpacity
                       key={store.id}
@@ -143,7 +183,7 @@ export default function OwnerBookingsScreen() {
           {/* Filter Tabs */}
           <Card style={{ marginBottom: 24 }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row space-x-3">
+              <View className="flex-row space-x-3 gap-3">
                 {[
                   { key: 'all', label: 'All' },
                   { key: 'pending', label: 'Pending' },
@@ -193,7 +233,7 @@ export default function OwnerBookingsScreen() {
               </View>
             </Card>
           ) : (
-            <View className="space-y-4">
+            <View className="space-y-4 gap-4">
               {bookings.map((booking) => (
                 <Card key={booking.id}>
                   <View className="flex-row justify-between items-start mb-3">
@@ -288,7 +328,7 @@ export default function OwnerBookingsScreen() {
                     {booking.status === 'CONFIRMED' && (
                       <Button
                         title="Mark as Completed"
-                        onPress={() => updateBookingStatus(booking.id, 'COMPLETED')}
+                        onPress={() => handleMarkAsCompleted(booking)}
                         variant="primary"
                         size="small"
                       />
@@ -308,6 +348,20 @@ export default function OwnerBookingsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Payment Confirmation Modal */}
+      <Modal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Payment Confirmation"
+        message={`Has the customer paid the remaining 50% of the payment?\n\nTotal Amount: $${selectedBooking?.totalPrice.toFixed(2)}\nPaid Amount: $${selectedBooking?.paidAmount.toFixed(2)}\nRemaining: $${(selectedBooking?.totalPrice || 0) - (selectedBooking?.paidAmount || 0)}`}
+        confirmText="Yes, Payment Made"
+        cancelText="No, Mark as Completed"
+        onConfirm={() => handlePaymentConfirmation(true)}
+        onCancel={() => handlePaymentConfirmation(false)}
+        type="warning"
+        loading={processingPayment}
+      />
     </SafeAreaView>
   );
 }

@@ -51,7 +51,7 @@ export default function OwnerStoresScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-8">
           {/* Header */}
-          <View className="flex-row justify-between items-center mb-8">
+          <View className="flex-row justify-between items-center mb-8 mt-10">
             <View>
               <Text style={{ color: textColor }} className="text-3xl font-bold mb-1">
                 My Stores
@@ -93,7 +93,7 @@ export default function OwnerStoresScreen() {
               </View>
             </Card>
           ) : (
-            <View className="space-y-4">
+            <View className="space-y-4 gap-4">
               {stores.map((store) => (
                 <TouchableOpacity
                   key={store.id}

@@ -16,6 +16,7 @@ export default function TabLayout() {
               title: 'Dashboard',
               tabBarIcon: ({ color }) => <ChartBar size={28} color={color} />,
               headerTitle: 'Dashboard',
+              headerShown: false
             }}
           />
           <Tabs.Screen
@@ -24,6 +25,7 @@ export default function TabLayout() {
               title: 'Stores',
               tabBarIcon: ({ color }) => <Building2 size={28} color={color} />,
               headerTitle: 'Stores',
+              headerShown: false
             }}
           />
           <Tabs.Screen
@@ -32,6 +34,7 @@ export default function TabLayout() {
               title: 'Bookings',
               tabBarIcon: ({ color }) => <Calendar size={28} color={color} />,
               headerTitle: 'Bookings',
+              headerShown: false
             }}
           />
           <Tabs.Screen
@@ -40,6 +43,7 @@ export default function TabLayout() {
               title: 'Profile',
               tabBarIcon: ({ color }) => <User size={28} color={color} />,
               headerTitle: 'Profile',
+              headerShown: false
             }}
           />
       </Tabs>

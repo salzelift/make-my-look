@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
+import RemainingPaymentButton from '@/components/remaining-payment-button';
 import { bookingsAPI } from '@/services/api';
 import { Booking } from '@/types';
 
@@ -39,6 +40,21 @@ export default function BookingsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    // Refresh bookings after successful payment
+    loadBookings();
+    Alert.alert(
+      'Payment Successful!',
+      'Your remaining payment has been processed successfully. Your booking is now fully paid.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error('Payment failed:', error);
+    Alert.alert('Payment Failed', error);
   };
 
   const getStatusColor = (status: string) => {
@@ -143,16 +159,38 @@ export default function BookingsScreen() {
                       </Text>
                     </View>
 
-                    <View className="flex-row justify-between items-center mb-3">
+                    <View className="flex-row justify-between items-center mb-2">
                       <Text style={{ color: textColor }} className="text-sm opacity-70">
-                        Price
+                        Total Price
                       </Text>
                       <Text style={{ color: textColor }} className="text-sm font-semibold">
                         ${booking.totalPrice.toFixed(2)}
                       </Text>
                     </View>
 
-                    <View className="flex-row justify-between items-center">
+                    {booking.paymentStatus === 'PARTIAL' && (
+                      <View className="flex-row justify-between items-center mb-2">
+                        <Text style={{ color: textColor }} className="text-sm opacity-70">
+                          Paid Amount
+                        </Text>
+                        <Text style={{ color: textColor }} className="text-sm font-semibold">
+                          ${booking.paidAmount.toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {booking.paymentStatus === 'PARTIAL' && (
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text style={{ color: textColor }} className="text-sm opacity-70">
+                          Remaining
+                        </Text>
+                        <Text style={{ color: textColor }} className="text-sm font-semibold text-orange-600">
+                          ${(booking.totalPrice - booking.paidAmount).toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
+
+                    <View className="flex-row justify-between items-center mb-3">
                       <View className={`px-2 py-1 rounded ${getStatusColor(booking.status)}`}>
                         <Text className={`text-xs font-semibold ${getStatusColor(booking.status).split(' ')[1]}`}>
                           {booking.status}
@@ -165,6 +203,17 @@ export default function BookingsScreen() {
                         </Text>
                       </View>
                     </View>
+
+                    {/* Pay Now Button for Partial Payments */}
+                    {booking.paymentStatus === 'PARTIAL' && booking.status !== 'CANCELLED' && (
+                      <View className="mt-3 pt-3 border-t border-gray-200">
+                        <RemainingPaymentButton
+                          booking={booking}
+                          onPaymentSuccess={handlePaymentSuccess}
+                          onPaymentError={handlePaymentError}
+                        />
+                      </View>
+                    )}
 
                     {booking.notes && (
                       <View className="mt-3 pt-3 border-t border-gray-200">

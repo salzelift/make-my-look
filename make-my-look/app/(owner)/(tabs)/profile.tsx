@@ -138,6 +138,28 @@ export default function OwnerProfileScreen() {
                 </View>
                 <Text style={{ color: textColor }} className="text-lg">→</Text>
               </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => router.push('/owner/bank-account')}
+                className="flex-row justify-between items-center py-3"
+              >
+                <View className="flex-row items-center">
+                  <Text style={{ color: textColor }} className="text-lg mr-3">🏦</Text>
+                  <Text style={{ color: textColor }} className="text-base">Add Bank Account</Text>
+                </View>
+                <Text style={{ color: textColor }} className="text-lg">→</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => router.push('/owner/payments')}
+                className="flex-row justify-between items-center py-3"
+              >
+                <View className="flex-row items-center">
+                  <Text style={{ color: textColor }} className="text-lg mr-3">💰</Text>
+                  <Text style={{ color: textColor }} className="text-base">View Payments</Text>
+                </View>
+                <Text style={{ color: textColor }} className="text-lg">→</Text>
+              </TouchableOpacity>
             </View>
           </Card>
 
