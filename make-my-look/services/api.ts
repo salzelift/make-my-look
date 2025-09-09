@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthResponse, User, Store, ServiceType, Booking, TimeSlot, SearchFilters } from '@/types';
 
-const API_BASE_URL = 'http://192.168.144.99:8001/api';
+const API_BASE_URL = 'http://172.29.40.148:8001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -38,6 +38,7 @@ export const authAPI = {
     email: string;
     phoneNumber: string;
     password: string;
+    ownerCode: string;
     store: {
       storeName: string;
       storeEmail?: string;
@@ -49,6 +50,7 @@ export const authAPI = {
     };
   }): Promise<AuthResponse> => {
     const response = await api.post('/auth/register/owner', data);
+    console.log(response);
     return response.data;
   },
 
@@ -294,6 +296,16 @@ export const customersAPI = {
     const response = await api.get('/customers/search', { params: filters });
     return response.data;
   },
+
+  enterOwnerCode: async (ownerCode: string, customerId: string) => {
+    const response = await api.post('/auth/customer/enter-owner-code', { ownerCode, customerId });
+    return response.data;
+  },
+
+  changeOwnerCode: async (ownerCode: string) => {
+    const response = await api.post('/customers/change-owner-code', { ownerCode });
+    return response.data;
+  },
 };
 
 // Owners API
@@ -336,6 +348,11 @@ export const ownersAPI = {
 
   getPaymentPayouts: async () => {
     const response = await api.get('/owners/payment-payouts');
+    return response.data;
+  },
+
+  getOwnerCode: async () => {
+    const response = await api.get('/owners/owner-code');
     return response.data;
   },
 };

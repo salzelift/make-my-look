@@ -97,7 +97,7 @@ export default function WelcomeScreen() {
         </Card>
 
         {/* Action Buttons */}
-        <View className="space-y-4 mb-8">
+        <View className="space-y-4 mb-8 gap-4">
           <Button
             title="Sign In"
             onPress={() => router.push('/(auth)/login')}

@@ -16,6 +16,7 @@ export default function RegisterOwnerScreen() {
     phoneNumber: '',
     password: '',
     confirmPassword: '',
+    ownerCode: '',
   });
   
   const [storeData, setStoreData] = useState({
@@ -82,6 +83,12 @@ export default function RegisterOwnerScreen() {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    if (!formData.ownerCode.trim()) {
+      newErrors.ownerCode = 'Owner code is required';
+    } else if (!/^[A-Za-z0-9]{6,10}$/.test(formData.ownerCode)) {
+      newErrors.ownerCode = 'Owner code must be 6-10 alphanumeric characters';
+    }
+
     // Store info validation
     if (!storeData.storeName.trim()) {
       newErrors.storeName = 'Store name is required';
@@ -113,6 +120,7 @@ export default function RegisterOwnerScreen() {
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password,
+        ownerCode: formData.ownerCode.trim(),
         store: {
           storeName: storeData.storeName.trim(),
           storeEmail: storeData.storeEmail.trim() || undefined,
@@ -222,6 +230,15 @@ export default function RegisterOwnerScreen() {
                   placeholder="Confirm your password"
                   secureTextEntry
                   error={errors.confirmPassword}
+                />
+
+                <Input
+                  label="Owner Code"
+                  value={formData.ownerCode}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, ownerCode: text.toUpperCase() }))}
+                  placeholder="Enter your unique code (6-10 characters)"
+                  autoCapitalize="characters"
+                  error={errors.ownerCode}
                 />
               </View>
             </Card>

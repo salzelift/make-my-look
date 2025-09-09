@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, StatusBar } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, StatusBar, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -7,14 +7,15 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { customersAPI, storesAPI } from '@/services/api';
-import { Store, ServiceType } from '@/types';
-import { Search, MapPin, Star, Clock, Sparkles, Scissors, Heart, Zap } from 'lucide-react-native';
+import { Store, ServiceType, Customer } from '@/types';
+import { Search, MapPin, Star, Clock, Sparkles, Scissors, Heart, Zap, Key } from 'lucide-react-native';
 
 export default function CustomerHomeScreen() {
   const { user, isAuthenticated } = useAuth();
   const [stores, setStores] = useState<Store[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [customerProfile, setCustomerProfile] = useState<Customer | null>(null);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -31,18 +32,32 @@ export default function CustomerHomeScreen() {
       return;
     }
 
-    loadStores();
+    loadCustomerProfile();
   }, [isAuthenticated, user]);
+
+  const loadCustomerProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await customersAPI.getProfile();
+      setCustomerProfile(response.customer);
+      
+      // Load stores only if customer has an associated owner
+      if (response.customer.ownerId) {
+        loadStores();
+      }
+    } catch (error) {
+      console.error('Failed to load customer profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadStores = async () => {
     try {
-      setLoading(true);
-      const response = await storesAPI.getAllStores();
+      const response = await customersAPI.searchStores({});
       setStores(response.stores);
     } catch (error) {
       console.error('Failed to load stores:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -56,6 +71,78 @@ export default function CustomerHomeScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEnterOwnerCode = () => {
+    Alert.prompt(
+      'Enter Owner Code',
+      'Enter the owner code provided by your salon to access their services:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Connect', 
+          onPress: async (ownerCode) => {
+            if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
+              Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
+              return;
+            }
+
+            try {
+              setLoading(true);
+              const response = await customersAPI.enterOwnerCode(ownerCode.toUpperCase(), customerProfile?.id || '');
+              Alert.alert(
+                'Success!',
+                `You are now connected to ${response.owner.name}'s salon.`,
+                [{ text: 'OK', onPress: loadCustomerProfile }]
+              );
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to connect to salon');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
+  };
+
+  const handleChangeOwnerCode = () => {
+    Alert.prompt(
+      'Change Owner Code',
+      'Enter a new owner code to connect to a different salon:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Change', 
+          onPress: async (ownerCode) => {
+            if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
+              Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
+              return;
+            }
+
+            try {
+              setLoading(true);
+              const response = await customersAPI.changeOwnerCode(ownerCode.toUpperCase());
+              Alert.alert(
+                'Success!',
+                `You are now connected to ${response.owner.name}'s salon.`,
+                [{ text: 'OK', onPress: loadCustomerProfile }]
+              );
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to change salon connection');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
   };
 
   const filteredStores = stores.filter(store =>
@@ -84,17 +171,33 @@ export default function CustomerHomeScreen() {
           {/* Header */}
           <View className="mb-8">
             <View className="flex-row items-center justify-between mb-4">
-              <View>
+              <View className="flex-1">
                 <Text style={{ color: textColor }} className="text-3xl font-bold mb-1">
-                  Find Your Salon
+                  {customerProfile?.owner ? `${customerProfile.owner.user.name}'s Salon` : 'Find Your Salon'}
                 </Text>
                 <Text style={{ color: textColor }} className="text-base opacity-70">
-                  Discover and book premium beauty services
+                  {customerProfile?.owner 
+                    ? `Connected to ${customerProfile.owner.ownerCode} • Discover and book services`
+                    : 'Enter owner code to access salon services'
+                  }
                 </Text>
               </View>
-              <TouchableOpacity className="w-10 h-10 rounded-full bg-primary-100 items-center justify-center">
-                <Heart size={20} color={textColor} />
-              </TouchableOpacity>
+              <View className="flex-row items-center space-x-2">
+                {customerProfile?.owner && (
+                  <TouchableOpacity 
+                    className="w-10 h-10 rounded-full bg-warning-100 items-center justify-center"
+                    onPress={handleChangeOwnerCode}
+                  >
+                    <Key size={16} color="#F59E0B" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity 
+                  className="w-10 h-10 rounded-full bg-primary-100 items-center justify-center"
+                  onPress={() => router.push('/(customer)/(tabs)/profile')}
+                >
+                  <Heart size={20} color={textColor} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -174,6 +277,25 @@ export default function CustomerHomeScreen() {
 
             {loading ? (
               <Loading text="Finding the best salons for you..." />
+            ) : !customerProfile?.ownerId ? (
+              <Card variant="outlined" style={{ padding: 40 }}>
+                <View className="items-center">
+                  <Key size={48} color={placeholderColor} />
+                  <Text style={{ color: textColor }} className="text-lg font-semibold mt-4 mb-2">
+                    Connect to a Salon
+                  </Text>
+                  <Text style={{ color: textColor }} className="text-base opacity-70 text-center mb-6">
+                    Enter the owner code provided by your salon to access their services and book appointments.
+                  </Text>
+                  <Button
+                    title="Enter Owner Code"
+                    onPress={handleEnterOwnerCode}
+                    variant="primary"
+                    size="medium"
+                    icon="🔑"
+                  />
+                </View>
+              </Card>
             ) : filteredStores.length === 0 ? (
               <Card variant="outlined" style={{ padding: 40 }}>
                 <View className="items-center">

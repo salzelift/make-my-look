@@ -12,6 +12,13 @@ router.get('/profile', authenticateToken, requireCustomer, async (req, res) => {
       include: {
         user: {
           select: { id: true, name: true, email: true, phoneNumber: true }
+        },
+        owner: {
+          include: {
+            user: {
+              select: { name: true }
+            }
+          }
         }
       }
     });
@@ -83,14 +90,38 @@ router.get('/search', authenticateToken, requireCustomer, async (req, res) => {
   try {
     const { query, serviceType, latitude, longitude, radius = 10 } = req.query;
 
+    // Get customer to check associated owner
+    const customer = await prisma.customer.findUnique({
+      where: { userId: req.userId },
+      include: { owner: true }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer profile not found' });
+    }
+
     let whereClause = {};
+
+    // Only show stores from the associated owner
+    if (customer.ownerId) {
+      whereClause.ownerId = customer.ownerId;
+    } else {
+      // If no owner associated, return empty results
+      return res.json({ stores: [] });
+    }
 
     // Search by store name or address
     if (query) {
-      whereClause.OR = [
-        { name: { contains: query, mode: 'insensitive' } },
-        { address: { contains: query, mode: 'insensitive' } }
+      whereClause.AND = [
+        { ownerId: customer.ownerId },
+        {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { address: { contains: query, mode: 'insensitive' } }
+          ]
+        }
       ];
+      delete whereClause.ownerId; // Remove duplicate
     }
 
     // Filter by service type
@@ -166,5 +197,62 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) {
   return deg * (Math.PI/180);
 }
+
+// Change owner code
+router.post('/change-owner-code', authenticateToken, requireCustomer, async (req, res) => {
+  try {
+    const { ownerCode } = req.body;
+
+    if (!ownerCode) {
+      return res.status(400).json({ error: 'Owner code is required' });
+    }
+
+    // Find owner by code
+    const owner = await prisma.owner.findUnique({
+      where: { ownerCode },
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Invalid owner code' });
+    }
+
+    // Update customer with new owner association
+    const updatedCustomer = await prisma.customer.update({
+      where: { userId: req.userId },
+      data: { ownerId: owner.id },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        },
+        owner: {
+          include: {
+            user: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    });
+
+    res.json({
+      message: 'Successfully changed owner association',
+      customer: updatedCustomer,
+      owner: {
+        id: owner.id,
+        name: owner.user.name,
+        ownerCode: owner.ownerCode
+      }
+    });
+
+  } catch (error) {
+    console.error('Error changing owner code:', error);
+    res.status(500).json({ error: 'Failed to change owner code' });
+  }
+});
 
 module.exports = router;

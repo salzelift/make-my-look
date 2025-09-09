@@ -82,7 +82,8 @@ export default function RegisterCustomerScreen() {
         password: formData.password,
         preferredServices,
       });
-      // Navigation will be handled by the auth context
+      // Navigate to owner code screen after successful registration
+      router.replace('/(auth)/enter-owner-code');
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message);
     } finally {

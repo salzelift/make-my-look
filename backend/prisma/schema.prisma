@@ -61,10 +61,12 @@ model Owner {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   razorpayAccountId String?
   bankAccount BankAccount?
+  ownerCode String @unique // Unique code for customers to access owner's stores
 
   // Relations
   stores Store[]
   payments Payments[]
+  customers Customer[] // Customers associated with this owner
   
   @@map("owners")
 }
@@ -93,6 +95,8 @@ model Customer {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   preferredServices String[] // Array of service type IDs
   payments Payments[]
+  ownerId String? // Associated owner ID
+  owner Owner? @relation(fields: [ownerId], references: [id])
   
   // Relations
   bookings Booking[]

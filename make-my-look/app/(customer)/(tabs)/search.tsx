@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { customersAPI, servicesAPI } from '@/services/api';
 import { Store, ServiceType } from '@/types';
+import { Key } from 'lucide-react-native';
 
 export default function SearchScreen() {
   const { user, isAuthenticated } = useAuth();
@@ -15,6 +16,7 @@ export default function SearchScreen() {
   const [stores, setStores] = useState<Store[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [customerProfile, setCustomerProfile] = useState<any>(null);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -31,8 +33,18 @@ export default function SearchScreen() {
       return;
     }
 
-    loadServiceTypes();
+    loadCustomerProfile();
   }, [isAuthenticated, user]);
+
+  const loadCustomerProfile = async () => {
+    try {
+      const response = await customersAPI.getProfile();
+      setCustomerProfile(response.customer);
+      await loadServiceTypes();
+    } catch (error) {
+      console.error('Failed to load customer profile:', error);
+    }
+  };
 
   const loadServiceTypes = async () => {
     try {

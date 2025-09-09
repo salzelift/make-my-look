@@ -21,7 +21,7 @@ export default function RegisterChoiceScreen() {
       >
         <View className="flex-1 px-6 pt-8 pb-8">
           {/* Header */}
-          <View className="mb-8">
+          <View className="mb-8 mt-10">
                       <TouchableOpacity 
               onPress={() => router.back()}
               className="flex-row items-center mb-6"
@@ -50,7 +50,7 @@ export default function RegisterChoiceScreen() {
         </View>
 
         {/* Choice Cards */}
-        <View className="space-y-4 flex-1">
+        <View className="space-y-4 flex-1 gap-4">
           {/* Customer Card */}
                       <Card variant="elevated" style={{ padding: 20 }}>
               <View className="items-center">

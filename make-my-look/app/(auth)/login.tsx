@@ -61,7 +61,7 @@ export default function LoginScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="flex-1 px-6 pt-8">
             {/* Header */}
-            <View className="mb-12">
+            <View className="mb-12 mt-10">
               <TouchableOpacity 
                 onPress={() => router.back()}
                 className="flex-row items-center mb-8"
@@ -88,7 +88,7 @@ export default function LoginScreen() {
 
             {/* Form */}
             <Card variant="elevated" style={{ marginBottom: 32 }}>
-              <View className="space-y-6">
+              <View className="space-y-6 gap-6">
                 <Input
                   label="Email Address"
                   value={email}

@@ -70,6 +70,25 @@ router.put('/profile', authenticateToken, requireOwner, async (req, res) => {
   }
 });
 
+// Get owner code (read-only, cannot be changed after registration)
+router.get('/owner-code', authenticateToken, requireOwner, async (req, res) => {
+  try {
+    const owner = await prisma.owner.findUnique({
+      where: { userId: req.userId },
+      select: { ownerCode: true }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Owner profile not found' });
+    }
+
+    res.json({ ownerCode: owner.ownerCode });
+  } catch (error) {
+    console.error('Error fetching owner code:', error);
+    res.status(500).json({ error: 'Failed to fetch owner code' });
+  }
+});
+
 // Get dashboard stats
 router.get('/dashboard', authenticateToken, requireOwner, async (req, res) => {
   try {

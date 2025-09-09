@@ -13,6 +13,7 @@ router.post('/register/owner', async (req, res) => {
       email, 
       phoneNumber, 
       password,
+      ownerCode,
       store: {
         storeName,
         storeEmail,
@@ -25,7 +26,7 @@ router.post('/register/owner', async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!name || !email || !phoneNumber || !password) {
+    if (!name || !email || !phoneNumber || !password || !ownerCode) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -45,6 +46,11 @@ router.post('/register/owner', async (req, res) => {
       return res.status(400).json({ error: 'Store details and at least one service are required' });
     }
 
+    // Validate owner code format (alphanumeric, 6-10 characters)
+    if (!/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
+      return res.status(400).json({ error: 'Owner code must be 6-10 alphanumeric characters' });
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -52,6 +58,15 @@ router.post('/register/owner', async (req, res) => {
 
     if (existingUser) {
       return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Check if owner code already exists
+    const existingOwnerCode = await prisma.owner.findUnique({
+      where: { ownerCode }
+    });
+
+    if (existingOwnerCode) {
+      return res.status(400).json({ error: 'Owner code already exists. Please choose a different code.' });
     }
 
     // Hash password
@@ -73,7 +88,8 @@ router.post('/register/owner', async (req, res) => {
       // Create owner profile
       const owner = await tx.owner.create({
         data: {
-          userId: user.id
+          userId: user.id,
+          ownerCode: ownerCode
         }
       });
 
@@ -90,22 +106,21 @@ router.post('/register/owner', async (req, res) => {
         }
       });
 
-      // Add services to store
-      const storeServices = await Promise.all(
-        serviceIds.map(serviceId => 
-          tx.storeService.create({
-            data: {
-              storeId: store.id,
-              serviceTypeId: serviceId,
-              price: 0, // Will be updated later
-              duration: 60 // Default 1 hour
-            }
-          })
-        )
-      );
+      // Add services to store using createMany for efficiency
+      if (Array.isArray(serviceIds) && serviceIds.length > 0) {
+        await tx.storeService.createMany({
+          data: serviceIds.map((serviceId) => ({
+            storeId: store.id,
+            serviceTypeId: serviceId,
+            price: 0,
+            duration: 60
+          })),
+          skipDuplicates: true
+        });
+      }
 
-      return { user, owner, store, storeServices };
-    });
+      return { user, owner, store };
+    }, { maxWait: 10000, timeout: 15000 });
 
     // Generate token
     const token = generateToken(result.user.id, 'OWNER', result.user.role);
@@ -257,6 +272,63 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Customer enter owner code
+router.post('/customer/enter-owner-code', async (req, res) => {
+  try {
+    const { ownerCode, customerId } = req.body;
+
+    if (!ownerCode || !customerId) {
+      return res.status(400).json({ error: 'Owner code and customer ID are required' });
+    }
+
+    // Find owner by code
+    const owner = await prisma.owner.findUnique({
+      where: { ownerCode },
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
+    });
+
+    if (!owner) {
+      return res.status(404).json({ error: 'Invalid owner code' });
+    }
+
+    // Update customer with owner association
+    const updatedCustomer = await prisma.customer.update({
+      where: { id: customerId },
+      data: { ownerId: owner.id },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        },
+        owner: {
+          include: {
+            user: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    });
+
+    res.json({
+      message: 'Successfully associated with owner',
+      customer: updatedCustomer,
+      owner: {
+        id: owner.id,
+        name: owner.user.name,
+        ownerCode: owner.ownerCode
+      }
+    });
+
+  } catch (error) {
+    console.error('Error associating customer with owner:', error);
+    res.status(500).json({ error: 'Failed to associate with owner' });
   }
 });
 

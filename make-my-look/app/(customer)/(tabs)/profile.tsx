@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { customersAPI } from '@/services/api';
+import { Customer } from '@/types';
 import { 
   User, 
   Calendar, 
@@ -17,11 +19,14 @@ import {
   Crown,
   Star,
   MapPin,
-  Clock
+  Clock,
+  Key
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuth();
+  const [customerProfile, setCustomerProfile] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -36,7 +41,57 @@ export default function ProfileScreen() {
       router.replace('/(owner)/(tabs)/profile');
       return;
     }
+
+    loadCustomerProfile();
   }, [isAuthenticated, user]);
+
+  const loadCustomerProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await customersAPI.getProfile();
+      setCustomerProfile(response.customer);
+    } catch (error) {
+      console.error('Failed to load customer profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangeOwnerCode = () => {
+    Alert.prompt(
+      'Change Owner Code',
+      'Enter the new owner code to connect to a different salon:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Change', 
+          onPress: async (ownerCode) => {
+            if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
+              Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
+              return;
+            }
+
+            try {
+              setLoading(true);
+              const response = await customersAPI.changeOwnerCode(ownerCode.toUpperCase());
+              Alert.alert(
+                'Success!',
+                `You are now connected to ${response.owner.name}'s salon.`,
+                [{ text: 'OK', onPress: loadCustomerProfile }]
+              );
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to change owner code');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -131,7 +186,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               
-              <View className="flex-row justify-between items-center py-3">
+              <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
                 <View className="flex-row items-center">
                   <View className="w-8 h-8 bg-success-100 rounded-full items-center justify-center mr-3">
                     <Crown size={16} color="#22C55E" />
@@ -143,6 +198,33 @@ export default function ProfileScreen() {
                 <Text style={{ color: textColor }} className="text-base font-medium">
                   Customer
                 </Text>
+              </View>
+
+              <View className="flex-row justify-between items-center py-3">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 bg-primary-100 rounded-full items-center justify-center mr-3">
+                    <Key size={16} color="#475569" />
+                  </View>
+                  <Text style={{ color: textColor }} className="text-base opacity-70">
+                    Connected Salon
+                  </Text>
+                </View>
+                <View className="flex-1 items-end">
+                  {customerProfile?.owner ? (
+                    <View className="items-end">
+                      <Text style={{ color: textColor }} className="text-base font-medium">
+                        {customerProfile.owner.user.name}
+                      </Text>
+                      <Text style={{ color: textColor }} className="text-sm opacity-70">
+                        Code: {customerProfile.owner.ownerCode}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ color: textColor }} className="text-base opacity-70">
+                      Not connected
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
           </Card>
@@ -188,6 +270,26 @@ export default function ProfileScreen() {
                     </Text>
                     <Text style={{ color: textColor }} className="text-sm opacity-70">
                       Discover new beauty services
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ color: textColor }} className="text-lg">→</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={handleChangeOwnerCode}
+                className="flex-row justify-between items-center py-4 bg-purple-50 rounded-xl px-4"
+              >
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center mr-4">
+                    <Key size={20} color="#8B5CF6" />
+                  </View>
+                  <View>
+                    <Text style={{ color: textColor }} className="text-base font-semibold">
+                      Change Owner Code
+                    </Text>
+                    <Text style={{ color: textColor }} className="text-sm opacity-70">
+                      Connect to a different salon
                     </Text>
                   </View>
                 </View>

@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "atomic": "c",
+        "condition_variable": "c",
+        "semaphore": "c"
+    }
+}

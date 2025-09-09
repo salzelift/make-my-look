@@ -174,3 +174,38 @@ export interface PaymentPayout {
     };
   };
 }
+
+export interface Customer {
+  id: string;
+  userId: string;
+  preferredServices: string[];
+  ownerId?: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+  };
+  owner?: {
+    id: string;
+    ownerCode: string;
+    user: {
+      name: string;
+    };
+  };
+  preferredServiceTypes?: ServiceType[];
+}
+
+export interface Owner {
+  id: string;
+  userId: string;
+  ownerCode: string;
+  razorpayAccountId?: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+  };
+  stores?: Store[];
+}
