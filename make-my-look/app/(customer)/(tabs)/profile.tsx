@@ -235,7 +235,7 @@ export default function ProfileScreen() {
               Quick Actions
             </Text>
             
-            <View className="space-y-4">
+            <View className="space-y-4 gap-4">
               <TouchableOpacity 
                 onPress={() => router.push('/(customer)/(tabs)/bookings')}
                 className="flex-row justify-between items-center py-4 bg-primary-50 rounded-xl px-4"
@@ -250,26 +250,6 @@ export default function ProfileScreen() {
                     </Text>
                     <Text style={{ color: textColor }} className="text-sm opacity-70">
                       View and manage appointments
-                    </Text>
-                  </View>
-                </View>
-                <Text style={{ color: textColor }} className="text-lg">→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={() => router.push('/(customer)/(tabs)/search')}
-                className="flex-row justify-between items-center py-4 bg-accent-50 rounded-xl px-4"
-              >
-                <View className="flex-row items-center">
-                  <View className="w-10 h-10 bg-accent-100 rounded-full items-center justify-center mr-4">
-                    <Search size={20} color="#F2751A" />
-                  </View>
-                  <View>
-                    <Text style={{ color: textColor }} className="text-base font-semibold">
-                      Find Salons
-                    </Text>
-                    <Text style={{ color: textColor }} className="text-sm opacity-70">
-                      Discover new beauty services
                     </Text>
                   </View>
                 </View>
@@ -304,7 +284,7 @@ export default function ProfileScreen() {
               Support & Help
             </Text>
             
-            <View className="space-y-4">
+            <View className="space-y-4 gap-4">
               <TouchableOpacity className="flex-row justify-between items-center py-4 bg-gray-50 rounded-xl px-4">
                 <View className="flex-row items-center">
                   <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center mr-4">

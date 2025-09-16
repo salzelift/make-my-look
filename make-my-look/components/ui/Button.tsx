@@ -112,6 +112,7 @@ export const Button: React.FC<ButtonProps> = ({
       fontWeight: '600',
       textAlign: 'center',
       letterSpacing: 0.5,
+      backgroundColor: 'transparent', // Ensure no background color
     };
 
     // Size styles
@@ -141,6 +142,7 @@ export const Button: React.FC<ButtonProps> = ({
   const getIconStyle = (): TextStyle => ({
     marginRight: iconPosition === 'left' ? 8 : 0,
     marginLeft: iconPosition === 'right' ? 8 : 0,
+    backgroundColor: 'transparent', // Ensure no background color for icons
   });
 
   return (
@@ -149,7 +151,6 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
-      className="active:scale-95"
     >
       {loading && (
         <ActivityIndicator

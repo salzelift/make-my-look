@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, StatusBar, Alert } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, Alert, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
+import { Input } from '@/components/ui/Input';
 import { customersAPI, storesAPI } from '@/services/api';
 import { Store, ServiceType, Customer } from '@/types';
-import { Search, MapPin, Star, Clock, Sparkles, Scissors, Heart, Zap, Key } from 'lucide-react-native';
+import { Search, MapPin, Star, Clock, Scissors, Heart, Key, X } from 'lucide-react-native';
 
 export default function CustomerHomeScreen() {
   const { user, isAuthenticated } = useAuth();
   const [stores, setStores] = useState<Store[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [customerProfile, setCustomerProfile] = useState<Customer | null>(null);
+  const [showOwnerCodeModal, setShowOwnerCodeModal] = useState(false);
+  const [ownerCodeInput, setOwnerCodeInput] = useState('');
+  const [ownerCodeError, setOwnerCodeError] = useState('');
+  const [loadingStores, setLoadingStores] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -54,59 +58,69 @@ export default function CustomerHomeScreen() {
 
   const loadStores = async () => {
     try {
+      setLoadingStores(true);
       const response = await customersAPI.searchStores({});
       setStores(response.stores);
     } catch (error) {
       console.error('Failed to load stores:', error);
+    } finally {
+      setLoadingStores(false);
     }
   };
 
-  const handleSearch = async () => {
+
+  const handleEnterOwnerCode = () => {
+    console.log('handleEnterOwnerCode called');
+    setShowOwnerCodeModal(true);
+    setOwnerCodeInput('');
+    setOwnerCodeError('');
+  };
+
+  const handleSubmitOwnerCode = async () => {
+    console.log('Submit owner code:', ownerCodeInput);
+    
+    if (!ownerCodeInput || !/^[A-Za-z0-9]{6,10}$/.test(ownerCodeInput)) {
+      setOwnerCodeError('Please enter a valid owner code (6-10 alphanumeric characters)');
+      return;
+    }
+
     try {
+      console.log('Attempting to enter owner code:', ownerCodeInput);
       setLoading(true);
-      const response = await customersAPI.searchStores({ query: searchQuery });
-      setStores(response.stores);
-    } catch (error) {
-      console.error('Search failed:', error);
+      const response = await customersAPI.enterOwnerCode(ownerCodeInput.toUpperCase(), customerProfile?.id || '');
+      console.log('Owner code response:', response);
+      
+      setShowOwnerCodeModal(false);
+      Alert.alert(
+        'Success!',
+        `You are now connected to ${response.owner.name}'s salon.`,
+        [{ text: 'OK', onPress: loadCustomerProfile }]
+      );
+    } catch (error: any) {
+      console.error('Error entering owner code:', error);
+      
+      // Extract user-friendly error message
+      let errorMessage = 'Failed to connect to salon';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (errorMessage.includes('Invalid owner code') || errorMessage.includes('404')) {
+        errorMessage = 'The owner code you entered is invalid. Please check with your salon and try again.';
+      } else if (errorMessage.includes('400')) {
+        errorMessage = 'Invalid owner code. Please check the code and try again.';
+      } else if (errorMessage.includes('500')) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      setOwnerCodeError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEnterOwnerCode = () => {
-    Alert.prompt(
-      'Enter Owner Code',
-      'Enter the owner code provided by your salon to access their services:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Connect', 
-          onPress: async (ownerCode) => {
-            if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
-              Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
-              return;
-            }
-
-            try {
-              setLoading(true);
-              const response = await customersAPI.enterOwnerCode(ownerCode.toUpperCase(), customerProfile?.id || '');
-              Alert.alert(
-                'Success!',
-                `You are now connected to ${response.owner.name}'s salon.`,
-                [{ text: 'OK', onPress: loadCustomerProfile }]
-              );
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to connect to salon');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ],
-      'plain-text',
-      '',
-      'default'
-    );
   };
 
   const handleChangeOwnerCode = () => {
@@ -145,10 +159,6 @@ export default function CustomerHomeScreen() {
     );
   };
 
-  const filteredStores = stores.filter(store =>
-    store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    store.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const popularServices = [
     { name: 'Haircut', icon: '💇‍♀️', color: '#667eea' },
@@ -201,38 +211,6 @@ export default function CustomerHomeScreen() {
             </View>
           </View>
 
-          {/* Search */}
-          <Card variant="elevated" style={{ marginBottom: 24 }}>
-            <View className="flex-row items-center">
-              <View className="flex-1 mr-3">
-                <View className="relative">
-                  <TextInput
-                    className="border-0 rounded-lg px-4 py-4 text-base pl-12"
-                    style={{ 
-                      backgroundColor: 'transparent',
-                      color: textColor,
-                    }}
-                    placeholder="Search salons or services..."
-                    placeholderTextColor={placeholderColor}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onSubmitEditing={handleSearch}
-                  />
-                  <View className="absolute left-4 top-4">
-                    <Search size={20} color={placeholderColor} />
-                  </View>
-                </View>
-              </View>
-              <Button
-                title="Search"
-                onPress={handleSearch}
-                loading={loading}
-                variant="primary"
-                size="medium"
-                icon="🔍"
-              />
-            </View>
-          </Card>
 
           {/* Popular Services */}
           <View className="mb-8">
@@ -242,13 +220,9 @@ export default function CustomerHomeScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pb-2">
               <View className="flex-row space-x-3">
                 {popularServices.map((service) => (
-                  <TouchableOpacity
+                  <View
                     key={service.name}
                     className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-2xl px-6 py-4 border border-primary-200"
-                    onPress={() => {
-                      setSearchQuery(service.name);
-                      handleSearch();
-                    }}
                   >
                     <View className="items-center">
                       <Text className="text-2xl mb-2">{service.icon}</Text>
@@ -256,7 +230,7 @@ export default function CustomerHomeScreen() {
                         {service.name}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             </ScrollView>
@@ -266,17 +240,19 @@ export default function CustomerHomeScreen() {
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-4">
               <Text style={{ color: textColor }} className="text-xl font-bold">
-                {searchQuery ? 'Search Results' : 'Nearby Salons'}
+                Salon Services
               </Text>
-              <TouchableOpacity>
-                <Text style={{ color: textColor }} className="text-sm font-medium text-primary-600">
-                  View All
-                </Text>
-              </TouchableOpacity>
+              {customerProfile?.owner && (
+                <TouchableOpacity onPress={handleChangeOwnerCode}>
+                  <Text style={{ color: textColor }} className="text-sm font-medium text-primary-600">
+                    Change Owner
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            {loading ? (
-              <Loading text="Finding the best salons for you..." />
+            {loadingStores ? (
+              <Loading text="Loading salon services..." />
             ) : !customerProfile?.ownerId ? (
               <Card variant="outlined" style={{ padding: 40 }}>
                 <View className="items-center">
@@ -289,28 +265,31 @@ export default function CustomerHomeScreen() {
                   </Text>
                   <Button
                     title="Enter Owner Code"
-                    onPress={handleEnterOwnerCode}
+                    onPress={() => {
+                      console.log('Enter Owner Code button pressed');
+                      handleEnterOwnerCode();
+                    }}
                     variant="primary"
                     size="medium"
                     icon="🔑"
                   />
                 </View>
               </Card>
-            ) : filteredStores.length === 0 ? (
+            ) : stores.length === 0 ? (
               <Card variant="outlined" style={{ padding: 40 }}>
                 <View className="items-center">
                   <Search size={48} color={placeholderColor} />
                   <Text style={{ color: textColor }} className="text-lg font-semibold mt-4 mb-2">
-                    No salons found
+                    No services available
                   </Text>
                   <Text style={{ color: textColor }} className="text-base opacity-70 text-center">
-                    Try adjusting your search terms or browse our popular services
+                    This salon doesn't have any services available yet
                   </Text>
                 </View>
               </Card>
             ) : (
               <View className="space-y-4">
-                {filteredStores.map((store) => (
+                {stores.map((store) => (
                   <TouchableOpacity
                     key={store.id}
                     onPress={() => router.push(`/store/${store.id}`)}
@@ -379,6 +358,66 @@ export default function CustomerHomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Owner Code Modal */}
+      <Modal
+        visible={showOwnerCodeModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowOwnerCodeModal(false)}
+      >
+        <View className="flex-1 bg-black/50 items-center justify-center px-6">
+          <Card style={{ width: '100%', maxWidth: 400 }}>
+            <View className="flex-row items-center justify-between mb-6">
+              <Text style={{ color: textColor }} className="text-xl font-bold">
+                Enter Owner Code
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowOwnerCodeModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center"
+              >
+                <X size={16} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ color: textColor }} className="text-base opacity-70 mb-6">
+              Enter the owner code provided by your salon to access their services:
+            </Text>
+            
+            <Input
+              label="Owner Code"
+              value={ownerCodeInput}
+              onChangeText={(text) => {
+                setOwnerCodeInput(text.toUpperCase());
+                setOwnerCodeError('');
+              }}
+              placeholder="e.g., SALON123"
+              autoCapitalize="characters"
+              error={ownerCodeError}
+              style={{ marginBottom: 20 }}
+            />
+            
+            <View className="flex-row space-x-3">
+              <Button
+                title="Cancel"
+                onPress={() => setShowOwnerCodeModal(false)}
+                variant="outline"
+                size="medium"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Connect"
+                onPress={handleSubmitOwnerCode}
+                loading={loading}
+                variant="primary"
+                size="medium"
+                style={{ flex: 1 }}
+                icon="🔑"
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

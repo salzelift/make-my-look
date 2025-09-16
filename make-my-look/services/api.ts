@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthResponse, User, Store, ServiceType, Booking, TimeSlot, SearchFilters } from '@/types';
 
-const API_BASE_URL = 'http://172.29.40.148:8001/api';
+const API_BASE_URL = 'https://backend.leadfume.com/api';
 
 // Create axios instance
 const api = axios.create({
