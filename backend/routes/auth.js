@@ -1,7 +1,9 @@
 const express = require('express');
 const { hashPassword, comparePassword, generateToken } = require('../utils/auth');
 const { validateEmail, validatePhoneNumber, validatePassword } = require('../utils/validation');
+const { sendOTPEmail } = require('../utils/email');
 const prisma = require('../utils/database');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -251,6 +253,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Only allow CUSTOMER and OWNER to login
+    if (user.userType !== 'CUSTOMER' && user.userType !== 'OWNER') {
+      return res.status(403).json({ error: 'Access denied. Only customers and owners can login here.' });
+    }
+
     // Verify password
     const isValidPassword = await comparePassword(password, user.password);
     if (!isValidPassword) {
@@ -260,13 +267,20 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = generateToken(user.id, user.userType, user.role);
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
+    // Return only necessary user fields
     res.json({
       message: 'Login successful',
       token,
-      user: userWithoutPassword
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        userType: user.userType,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
     });
 
   } catch (error) {
@@ -329,6 +343,256 @@ router.post('/customer/enter-owner-code', async (req, res) => {
   } catch (error) {
     console.error('Error associating customer with owner:', error);
     res.status(500).json({ error: 'Failed to associate with owner' });
+  }
+});
+
+// Forgot Password - Send OTP
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    // Don't reveal if user exists or not for security
+    if (!user) {
+      return res.json({ message: 'If the email exists, an OTP has been sent.' });
+    }
+
+    // Only allow CUSTOMER and OWNER
+    if (user.userType !== 'CUSTOMER' && user.userType !== 'OWNER') {
+      return res.json({ message: 'If the email exists, an OTP has been sent.' });
+    }
+
+    // Check for recent OTP requests (rate limiting - max 1 per 2 minutes)
+    const recentOTP = await prisma.passwordResetOTP.findFirst({
+      where: {
+        email,
+        createdAt: {
+          gte: new Date(Date.now() - 2 * 60 * 1000) // 2 minutes ago
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    if (recentOTP && !recentOTP.isUsed) {
+      return res.status(429).json({ error: 'Please wait before requesting another OTP' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Delete any existing unused OTPs for this email
+    await prisma.passwordResetOTP.deleteMany({
+      where: {
+        email,
+        isUsed: false
+      }
+    });
+
+    // Create new OTP
+    await prisma.passwordResetOTP.create({
+      data: {
+        email,
+        otp,
+        expiresAt
+      }
+    });
+
+    // Send OTP via email
+    try {
+      await sendOTPEmail(email, otp);
+      res.json({ message: 'If the email exists, an OTP has been sent.' });
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Delete the OTP if email fails
+      await prisma.passwordResetOTP.deleteMany({
+        where: { email }
+      });
+      res.status(500).json({ error: 'Failed to send OTP email' });
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate OTP format (6 digits)
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ error: 'OTP must be 6 digits' });
+    }
+
+    // Find valid OTP
+    const otpRecord = await prisma.passwordResetOTP.findFirst({
+      where: {
+        email,
+        otp,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    res.json({ message: 'OTP verified successfully' });
+
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ error: 'Email, OTP, and new password are required' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate OTP format (6 digits)
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ error: 'OTP must be 6 digits' });
+    }
+
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Find valid OTP
+    const otpRecord = await prisma.passwordResetOTP.findFirst({
+      where: {
+        email,
+        otp,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Only allow CUSTOMER and OWNER
+    if (user.userType !== 'CUSTOMER' && user.userType !== 'OWNER') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password and mark OTP as used
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword }
+      });
+
+      await tx.passwordResetOTP.update({
+        where: { id: otpRecord.id },
+        data: { isUsed: true }
+      });
+    });
+
+    res.json({ message: 'Password reset successfully' });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Delete User (self-delete)
+router.delete('/user', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const userType = req.userType;
+
+    // Only allow CUSTOMER and OWNER
+    if (userType !== 'CUSTOMER' && userType !== 'OWNER') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Verify user still exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete all unused OTPs for this user's email
+    await prisma.passwordResetOTP.deleteMany({
+      where: {
+        email: user.email,
+        isUsed: false
+      }
+    });
+
+    // Delete user (cascade will handle related records)
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    res.json({ message: 'User account deleted successfully' });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user account' });
   }
 });
 

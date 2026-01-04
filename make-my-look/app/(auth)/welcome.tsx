@@ -42,7 +42,7 @@ export default function WelcomeScreen() {
           
           {/* Brand */}
           <Text style={{ color: textColor }} className="text-5xl font-bold text-center mb-3 tracking-tight">
-            Salon
+            Book My Look
           </Text>
           <Text style={{ color: textColor }} className="text-xl text-center opacity-80 font-medium">
             Book your perfect look

@@ -280,3 +280,16 @@ model Payments {
   
   @@map("payments")
 }
+
+// Password Reset OTP
+model PasswordResetOTP {
+  id        String   @id @default(uuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([email])
+  @@map("password_reset_otps")
+}

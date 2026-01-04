@@ -41,7 +41,7 @@ export default function RegisterChoiceScreen() {
               </View>
               
               <Text style={{ color: textColor }} className="text-3xl font-bold mb-2 text-center">
-                Join Salon
+                Join Book My Look
               </Text>
               <Text style={{ color: textColor }} className="text-base opacity-70 text-center leading-5">
                 Choose how you'd like to use our platform

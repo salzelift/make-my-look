@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, Alert, Modal } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, Alert, Modal, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -20,6 +20,7 @@ export default function CustomerHomeScreen() {
   const [ownerCodeInput, setOwnerCodeInput] = useState('');
   const [ownerCodeError, setOwnerCodeError] = useState('');
   const [loadingStores, setLoadingStores] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -65,6 +66,17 @@ export default function CustomerHomeScreen() {
       console.error('Failed to load stores:', error);
     } finally {
       setLoadingStores(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await loadCustomerProfile();
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -131,7 +143,7 @@ export default function CustomerHomeScreen() {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Change', 
-          onPress: async (ownerCode) => {
+          onPress: async (ownerCode?: string) => {
             if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
               Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
               return;
@@ -176,7 +188,18 @@ export default function CustomerHomeScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor }}>
       <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
       
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={textColor}
+            colors={[textColor]}
+          />
+        }
+      >
         <View className="px-6 pt-8">
           {/* Header */}
           <View className="mb-8">

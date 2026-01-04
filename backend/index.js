@@ -31,6 +31,21 @@ app.use((req, res, next)=>{
 // cron job for payout
 require('./utils/payout-cron');
 
+// cron job for OTP cleanup
+const cron = require('node-cron');
+const { cleanupExpiredOTPs } = require('./utils/otp-cleanup');
+
+// Cleanup expired OTPs every 6 hours
+cron.schedule('0 */6 * * *', async () => {
+  console.log('Cron started: Cleaning up expired OTPs...');
+  try {
+    await cleanupExpiredOTPs();
+    console.log('Cron completed: OTP cleanup finished.');
+  } catch (err) {
+    console.error('Error in OTP cleanup cron:', err);
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/owners', ownerRoutes);

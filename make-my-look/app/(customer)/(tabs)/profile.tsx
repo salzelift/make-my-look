@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { InputModal } from '@/components/ui/InputModal';
 import { customersAPI } from '@/services/api';
 import { Customer } from '@/types';
 import { 
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuth();
   const [customerProfile, setCustomerProfile] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showOwnerCodeModal, setShowOwnerCodeModal] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -58,39 +60,28 @@ export default function ProfileScreen() {
   };
 
   const handleChangeOwnerCode = () => {
-    Alert.prompt(
-      'Change Owner Code',
-      'Enter the new owner code to connect to a different salon:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Change', 
-          onPress: async (ownerCode) => {
-            if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
-              Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
-              return;
-            }
+    setShowOwnerCodeModal(true);
+  };
 
-            try {
-              setLoading(true);
-              const response = await customersAPI.changeOwnerCode(ownerCode.toUpperCase());
-              Alert.alert(
-                'Success!',
-                `You are now connected to ${response.owner.name}'s salon.`,
-                [{ text: 'OK', onPress: loadCustomerProfile }]
-              );
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to change owner code');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ],
-      'plain-text',
-      '',
-      'default'
-    );
+  const handleOwnerCodeSubmit = async (ownerCode: string) => {
+    if (!ownerCode || !/^[A-Za-z0-9]{6,10}$/.test(ownerCode)) {
+      Alert.alert('Error', 'Please enter a valid owner code (6-10 alphanumeric characters)');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await customersAPI.changeOwnerCode(ownerCode.toUpperCase());
+      Alert.alert(
+        'Success!',
+        `You are now connected to ${response.owner.name}'s salon.`,
+        [{ text: 'OK', onPress: loadCustomerProfile }]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to change owner code');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -147,7 +138,7 @@ export default function ProfileScreen() {
                 Profile Information
               </Text>
               <TouchableOpacity 
-                onPress={() => router.push('/(customer)/(tabs)/profile')}
+                onPress={() => router.push('/customer/edit-profile')}
                 className="flex-row items-center"
               >
                 <Edit3 size={16} color={textColor} />
@@ -285,7 +276,10 @@ export default function ProfileScreen() {
             </Text>
             
             <View className="space-y-4 gap-4">
-              <TouchableOpacity className="flex-row justify-between items-center py-4 bg-gray-50 rounded-xl px-4">
+              <TouchableOpacity 
+                onPress={() => router.push('/customer/help')}
+                className="flex-row justify-between items-center py-4 bg-gray-50 rounded-xl px-4"
+              >
                 <View className="flex-row items-center">
                   <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center mr-4">
                     <HelpCircle size={20} color="#6B7280" />
@@ -302,7 +296,10 @@ export default function ProfileScreen() {
                 <Text style={{ color: textColor }} className="text-lg">→</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity className="flex-row justify-between items-center py-4 bg-gray-50 rounded-xl px-4">
+              <TouchableOpacity 
+                onPress={() => router.push('/customer/support')}
+                className="flex-row justify-between items-center py-4 bg-gray-50 rounded-xl px-4"
+              >
                 <View className="flex-row items-center">
                   <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center mr-4">
                     <Phone size={20} color="#6B7280" />
@@ -332,6 +329,20 @@ export default function ProfileScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Owner Code Input Modal */}
+      <InputModal
+        visible={showOwnerCodeModal}
+        onClose={() => setShowOwnerCodeModal(false)}
+        title="Change Owner Code"
+        message="Enter the new owner code to connect to a different salon:"
+        placeholder="Enter owner code"
+        confirmText="Change"
+        onConfirm={handleOwnerCodeSubmit}
+        loading={loading}
+        maxLength={10}
+        autoCapitalize="characters"
+      />
     </SafeAreaView>
   );
 }

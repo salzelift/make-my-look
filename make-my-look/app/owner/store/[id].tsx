@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
@@ -112,13 +112,24 @@ export default function StoreManagementScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor }}>
+      <Stack.Screen options={
+          {
+            headerShown: false
+          }
+      }/>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <Stack.Screen options={
+          {
+            headerShown: false
+          }
+        }/>
         <View className="px-6 pt-8">
           {/* Header */}
-          <View className="flex-row items-center mb-6">
+          <View className="flex justify-start gap-5 mb-6">
             <TouchableOpacity 
               onPress={() => router.back()}
               className="mr-4"
+              style={{ marginLeft: 0 }}
             >
               <Text style={{ color: textColor }} className="text-lg">← Back</Text>
             </TouchableOpacity>

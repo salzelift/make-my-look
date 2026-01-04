@@ -120,7 +120,7 @@ export default function OwnerProfileScreen() {
             
             <Button
               title="Edit Profile"
-              onPress={() => router.push('/(owner)/(tabs)/profile')}
+              onPress={() => router.push('/owner/edit-profile')}
               variant="outline"
               style={{ marginTop: 16 }}
             />
@@ -208,7 +208,7 @@ export default function OwnerProfileScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                onPress={() => router.push('/(owner)/(tabs)/stores')}
+                onPress={() => router.push('/owner/add-store')}
                 className="flex-row justify-between items-center py-3"
               >
                 <View className="flex-row items-center">
@@ -249,7 +249,10 @@ export default function OwnerProfileScreen() {
             </Text>
             
             <View className="space-y-3">
-              <TouchableOpacity className="flex-row justify-between items-center py-3">
+              <TouchableOpacity 
+                onPress={() => router.push('/owner/help')}
+                className="flex-row justify-between items-center py-3"
+              >
                 <View className="flex-row items-center">
                   <Text style={{ color: textColor }} className="text-lg mr-3">❓</Text>
                   <Text style={{ color: textColor }} className="text-base">Help & FAQ</Text>
@@ -257,7 +260,10 @@ export default function OwnerProfileScreen() {
                 <Text style={{ color: textColor }} className="text-lg">→</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity className="flex-row justify-between items-center py-3">
+              <TouchableOpacity 
+                onPress={() => router.push('/owner/support')}
+                className="flex-row justify-between items-center py-3"
+              >
                 <View className="flex-row items-center">
                   <Text style={{ color: textColor }} className="text-lg mr-3">📞</Text>
                   <Text style={{ color: textColor }} className="text-base">Contact Support</Text>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Card } from '@/components/ui/Card';
@@ -134,13 +134,19 @@ export default function AddStoreScreen() {
         className="flex-1" 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <Stack.Screen options={
+          {
+            headerShown: false
+          }
+        }/>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="px-6 pt-8">
             {/* Header */}
-            <View className="flex-row items-center mb-8">
+            <View className="flex justify-start gap-5 mb-8">
               <TouchableOpacity 
                 onPress={() => router.back()}
                 className="mr-4"
+                style={{ marginLeft: 0 }}
               >
                 <Text style={{ color: textColor }} className="text-lg">← Back</Text>
               </TouchableOpacity>

@@ -81,7 +81,7 @@ export const Button: React.FC<ButtonProps> = ({
         shadowColor: '#000',
       },
       outline: {
-        backgroundColor: 'transparent',
+        backgroundColor: '#e0e0e0',
         borderWidth: 2,
         borderColor: textColor,
         shadowColor: '#000',

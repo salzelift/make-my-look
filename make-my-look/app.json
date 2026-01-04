@@ -1,24 +1,25 @@
   {
   "expo": {
-    "name": "Make My Look",
+    "name": "Book My Look",
     "slug": "make-my-look",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "makemylook",
+    "scheme": "bookmylook",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.salezlift.makemylook"
+      "bundleIdentifier": "com.auracodelab.bookmylook"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#6366f1"
+        "backgroundColor": "#ffffff"
       },
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
-      "package": "com.salezlift.makemylook"
+      "package": "com.auracodelab.bookmylook"
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +34,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#6366f1"
+          "backgroundColor": "#ffffff"
         }
       ]
     ],
