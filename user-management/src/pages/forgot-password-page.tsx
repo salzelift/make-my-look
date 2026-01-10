@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../lib/api';
 
 const ForgotPasswordPage = () => {
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  
   const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -62,9 +65,16 @@ const ForgotPasswordPage = () => {
 
     try {
       await authAPI.resetPassword(email, otp, newPassword);
-      setMessage('Password reset successfully! You can now login.');
+      setMessage('Password reset successfully! Redirecting...');
+      
       setTimeout(() => {
-        window.location.href = '/login';
+        // If redirect URL is provided (from mobile app), redirect to that URL
+        // Otherwise, redirect to login page
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        } else {
+          window.location.href = '/login';
+        }
       }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to reset password');

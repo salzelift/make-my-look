@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, SafeAreaView, StatusBar, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -32,12 +32,7 @@ export default function WelcomeScreen() {
         <View className="items-center mb-16">
           {/* Logo */}
           <View className="relative mb-8">
-            <View className="w-28 h-28 rounded-full bg-gradient-to-br from-primary-600 to-primary-800 items-center justify-center shadow-lg">
-              <Scissors size={40} color="#FFFFFF" />
-            </View>
-            <View className="absolute -top-2 -right-2 w-8 h-8 bg-accent-500 rounded-full items-center justify-center">
-              <Sparkles size={16} color="#FFFFFF" />
-            </View>
+            <Image source={require('@/assets/images/icon.png')} className="w-60 h-60 rounded-full" />
           </View>
           
           {/* Brand */}

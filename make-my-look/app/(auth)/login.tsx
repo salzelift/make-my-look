@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, Linking as RNLinking } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -14,10 +16,125 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const isMountedRef = useRef(true);
 
   const { login } = useAuth();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Handle deep linking when returning from forgot password
+  useEffect(() => {
+    const handleDeepLink = (url: string | null) => {
+      if (url && url.includes('forgot-password-success')) {
+        Alert.alert(
+          'Password Reset Successful',
+          'Your password has been reset successfully. Please login with your new password.',
+          [{ text: 'OK' }]
+        );
+      }
+    };
+
+    // Listen for deep links while app is running
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    // Check if app was opened with a deep link
+    Linking.getInitialURL().then(handleDeepLink);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleForgotPassword = async () => {
+    try {
+      const forgotPasswordUrl = 'https://www.auracodelab.com/forgot-password';
+      
+      // Create deep link URL for redirect back to app after password reset
+      // Format: bookmylook:///(auth)/login?forgot-password-success=true
+      const redirectUrl = Linking.createURL('/(auth)/login', {
+        scheme: 'bookmylook',
+        queryParams: { 'forgot-password-success': 'true' },
+      });
+      
+      // Pass redirect URL as query parameter to web page
+      const urlWithRedirect = `${forgotPasswordUrl}?redirect=${encodeURIComponent(redirectUrl)}`;
+      
+      // Add a small delay to ensure the activity is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Check if component is still mounted
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      // Try to open in in-app browser first
+      try {
+        await WebBrowser.openBrowserAsync(urlWithRedirect, {
+          showTitle: true,
+          toolbarColor: backgroundColor,
+          controlsColor: textColor,
+          enableBarCollapsing: false,
+        });
+      } catch (browserError: any) {
+        // If WebBrowser fails due to activity issue, use system browser as fallback
+        if (browserError.message?.includes('activity is no longer available') || 
+            browserError.message?.includes('no longer available')) {
+          // Silently fallback to system browser
+          if (isMountedRef.current) {
+            const canOpen = await RNLinking.canOpenURL(urlWithRedirect);
+            if (canOpen) {
+              await RNLinking.openURL(urlWithRedirect);
+            }
+          }
+        } else {
+          // For other errors, try system browser
+          if (isMountedRef.current) {
+            try {
+              await RNLinking.openURL(urlWithRedirect);
+            } catch (fallbackError) {
+              console.error('Failed to open URL:', fallbackError);
+              Alert.alert('Error', 'Failed to open forgot password page. Please try again.');
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      // Only show error if component is still mounted and it's not an expected error
+      if (isMountedRef.current) {
+        const errorMessage = error?.message || String(error);
+        if (!errorMessage.includes('activity is no longer available') && 
+            !errorMessage.includes('no longer available')) {
+          console.error('Error opening forgot password:', error);
+          // Final fallback: try system browser
+          try {
+            const forgotPasswordUrl = 'https://www.auracodelab.com/forgot-password';
+            const redirectUrl = Linking.createURL('/(auth)/login', {
+              scheme: 'bookmylook',
+              queryParams: { 'forgot-password-success': 'true' },
+            });
+            const urlWithRedirect = `${forgotPasswordUrl}?redirect=${encodeURIComponent(redirectUrl)}`;
+            const canOpen = await RNLinking.canOpenURL(urlWithRedirect);
+            if (canOpen) {
+              await RNLinking.openURL(urlWithRedirect);
+            } else {
+              Alert.alert('Error', 'Unable to open the browser. Please check your device settings.');
+            }
+          } catch (fallbackError) {
+            Alert.alert('Error', 'Failed to open forgot password page. Please try again.');
+          }
+        }
+      }
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -117,6 +234,15 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                   }
                 />
+
+                <TouchableOpacity 
+                  onPress={handleForgotPassword}
+                  style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 8 }}
+                >
+                  <Text style={{ color: textColor }} className="text-sm opacity-70 underline">
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
 
                 <Button
                   title="Sign In"

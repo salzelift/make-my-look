@@ -71,3 +71,33 @@ npm run build
 ```
 
 The built files will be in the `dist` directory.
+
+## Deployment on Vercel
+
+1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
+
+2. Import your project on Vercel:
+   - Go to https://vercel.com
+   - Click "New Project"
+   - Import your repository
+
+3. Configure environment variables:
+   - Add `VITE_BASE_API_URL` in the Vercel project settings
+   - Set it to your backend API URL (e.g., `https://your-backend.herokuapp.com/api`)
+
+4. Build settings (Vercel should auto-detect these):
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+   - **Install Command**: `npm install`
+
+5. Deploy:
+   - Click "Deploy"
+   - Vercel will automatically build and deploy your app
+
+### Vercel Configuration
+
+The `vercel.json` file is already configured to handle client-side routing:
+- All routes are rewritten to `/index.html` so React Router can handle routing
+- Static assets are served correctly before applying the rewrite
+
+After deployment, you can reload any page (like `/forgot-password` or `/dashboard`) and it will work correctly without showing a 404 error.
